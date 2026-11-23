@@ -1,0 +1,123 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Sistema CCB — Como atualizar para a v1.9.0</title><style>
+  @font-face { font-family: "Space Grotesk"; src: url("file:///home/claude/src/codigo-fonte-ccb/frontend/public/fontes/SpaceGrotesk.ttf"); font-weight: 300 700; }
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 10.5pt; line-height: 1.5; color: #17262b; margin: 0; }
+  h1 { font-size: 24pt; margin: 0 0 4pt; color: #043dac; letter-spacing: -0.3pt; }
+  h2 { font-size: 14pt; margin: 22pt 0 6pt; color: #043dac; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 14pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  .sub { color: #4d5f64; font-size: 11.5pt; margin-bottom: 14pt; }
+  .capa { border-bottom: 3pt solid #043dac; padding-bottom: 12pt; margin-bottom: 14pt; display: flex; gap: 14pt; align-items: center; }
+  .capa svg { flex: none; }
+  .passo { display: flex; gap: 12pt; margin: 12pt 0; break-inside: avoid; }
+  .num { flex: none; width: 26pt; height: 26pt; border-radius: 50%; background: #043dac; color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 12pt; }
+  .passo > div:not(.num) { flex: 1; min-width: 0; }
+  .duas figure { flex: none; width: 175pt; margin-top: 0; }
+  .duas figure img { width: 175pt !important; }
+  .passo h3 { margin-top: 3pt; }
+  ol, ul { margin: 0 0 7pt; padding-left: 16pt; }
+  li { margin: 2pt 0; }
+  .caixa { border-radius: 8pt; padding: 9pt 12pt; margin: 8pt 0; break-inside: avoid; }
+  .atencao { background: #fdf3e1; border-left: 4pt solid #c98a1b; }
+  .info { background: #eaf1ff; border-left: 4pt solid #043dac; }
+  .codigo { background: #17262b; color: #fff; border-radius: 10pt; padding: 12pt; text-align: center; margin: 10pt 0; break-inside: avoid; }
+  .codigo small { display: block; color: #b9c5c2; font-size: 9pt; margin-bottom: 3pt; }
+  .codigo strong { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 22pt; letter-spacing: 3pt; }
+  code { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; background: #eef2f1; padding: 0.5pt 4pt; border-radius: 3pt; font-size: 9.5pt; }
+  table { width: 100%; border-collapse: collapse; margin: 6pt 0 10pt; font-size: 9.5pt; break-inside: avoid; }
+  th, td { text-align: left; padding: 5pt 7pt; border-bottom: 0.6pt solid #dbe2e0; vertical-align: top; }
+  th { background: #f4f6f5; font-weight: 700; }
+  .arvore { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 9pt; background: #f4f6f5; border-radius: 8pt; padding: 10pt 12pt; white-space: pre; line-height: 1.45; margin: 8pt 0; break-inside: avoid; }
+  .arvore b { color: #043dac; }
+  .arvore i { color: #6f7f83; font-style: normal; }
+  figure { margin: 10pt 0; text-align: center; break-inside: avoid; }
+  figure img { max-width: 100%; border-radius: 6pt; border: 0.6pt solid #dbe2e0; }
+  figcaption { font-size: 9pt; color: #6f7f83; margin-top: 4pt; }
+  .duas { display: flex; gap: 14pt; align-items: flex-start; }
+  .duas > * { flex: 1; }
+  .quebra { break-before: page; }
+  .ok { color: #1d6b3a; font-weight: 700; }
+</style>
+<style>
+  .tres { display: flex; gap: 10pt; }
+  .tres figure { flex: 1; margin: 6pt 0; }
+  .tres img { width: 100%; }
+  td:first-child { white-space: nowrap; }
+  td:first-child { white-space: normal !important; width: 55%; }
+</style>
+</head><body><div class="capa"><div><h1>Sistema CCB — Como atualizar</h1>
+<p class="sub">Versão 1.9.0 · Loja de produtos de limpeza · 21/10/2026</p></div></div>
+
+<p>Precisa da 1.8.0 instalada. Chamados, OS e estoques continuam como estão. Esta versão muda a limpeza: a loja das casas, as duas análises, a consolidação com o DML Central e a lista de compra por fornecedor.</p>
+
+<h2>Arquivos</h2>
+<ul>
+<li><code>v1.9.0_01_loja_limpeza.sql</code>: muda o banco da limpeza (phpMyAdmin)</li>
+<li><code>v1.9.0_02_catalogo_setor8.sql</code>: os 135 produtos da planilha CCLIMP, sem preços (phpMyAdmin)</li>
+<li><code>ccb_v1.9.0_atualizacao.zip</code>: o sistema novo (por cima da pasta <code>ccb</code>)</li>
+<li><code>codigo-fonte_v1.9.0.zip</code>: só cópia de segurança, não sobe</li>
+</ul>
+
+<div class="passo"><div class="num">1</div><div><h3>Cópia de segurança do banco</h3>
+<p>phpMyAdmin → <b>Exportar</b> → <b>Executar</b>. Guarde o arquivo.</p></div></div>
+
+<div class="passo"><div class="num">2</div><div><h3>Rodar os dois SQL, nesta ordem</h3>
+<ol><li>phpMyAdmin → banco <code>u192849708_ccb</code> → aba <b>Importar</b> → <code>v1.9.0_01_loja_limpeza.sql</code> → Importar.</li>
+<li>Depois, do mesmo jeito, <code>v1.9.0_02_catalogo_setor8.sql</code>.</li></ol>
+<p>Cada um deve terminar com a faixa verde. Se aparecer vermelha, mande um print.</p>
+<div class="caixa info">O 01 roda <b>uma vez só</b>. O 02 pode rodar de novo sem duplicar produto. Ele tira da loja os 17 produtos de exemplo da instalação.</div></div></div>
+
+<div class="passo"><div class="num">3</div><div><h3>Subir o zip</h3>
+<p>Gerenciador de Arquivos → <code>public_html</code> → envie <code>ccb_v1.9.0_atualizacao.zip</code> → <b>Extrair</b> ali mesmo, substituindo. Apague o zip depois.</p>
+<p>O <code>nucleo/config/config.local.php</code> (senha do banco) não vem no zip e continua como está.</p></div></div>
+
+<div class="passo"><div class="num">4</div><div><h3>Abrir a versão nova</h3>
+<p>No computador: <b>Ctrl + Shift + R</b>. No celular: feche o app e abra de novo, duas vezes.</p></div></div>
+
+<div class="passo"><div class="num">5</div><div><h3>Acertar as orientadoras</h3>
+<p>A Orientadora CNS agora é <b>do grupo</b>, igual à Coordenação de Manutenção. Quem já era orientadora virou orientadora do grupo das casas que tinha.</p>
+<p>Em <b>Admin → Usuários</b>, abra cada orientadora e confira o grupo marcado em “Grupos em que é orientadora”. Se a mesma pessoa coordena o grupo na manutenção, marque os dois perfis com o mesmo grupo.</p></div></div>
+
+<div class="passo"><div class="num">6</div><div><h3>Ligar a abertura automática (Coordenação CNS)</h3>
+<p>Limpeza → <b>Abertura automática</b> → escolha o dia que abre e o dia do prazo. A partir daí o pedido do mês abre sozinho.</p></div></div>
+
+<h2>O caminho do pedido</h2>
+<table>
+<tr><th>Etapa</th><th>Quem</th><th>O que faz</th></tr>
+<tr><td>1. Abertura</td><td>Sistema (agenda) ou Coordenação CNS</td><td>Abre o pedido do mês com prazo. Um ciclo por mês.</td></tr>
+<tr><td>2. Pedido</td><td>Casa de Oração</td><td>Escolhe na loja, vendo o preço de cada produto e o total. Pode mudar até enviar.</td></tr>
+<tr><td>3. 1ª análise</td><td>Orientadora do grupo</td><td>Ajusta quantidades, aprova ou devolve para a casa.</td></tr>
+<tr><td>4. Análise final e consolidação</td><td>Coordenação CNS</td><td>Aprova ou devolve, fecha o ciclo e confere a lista de compra, que já desconta o DML Central. Depois libera para Compras.</td></tr>
+<tr><td>5. Compra</td><td>Compras</td><td>Recebe a lista separada por fornecedor e registra a compra.</td></tr>
+<tr><td>6. Entrega</td><td>Coordenação CNS e Casa</td><td>Igual à 1.8: chegada no DML Central, entrega às casas e a casa confirma.</td></tr>
+</table>
+<p>Casa sem orientadora: a Coordenação faz as duas análises de uma vez.</p>
+
+<h2>O que mudou</h2>
+<h3>Loja da casa</h3>
+<ul><li>Busca por nome e filtro por categoria. Categorias novas: <b>EPI e calçados</b> e <b>Dispensers e peças</b>.</li>
+<li>Preço em cada produto, total no carrinho e na revisão. Produto sem preço aparece como “Sem preço” e não entra no total.</li>
+<li>Sapato e bota aparecem como um produto só, com os números para escolher.</li>
+<li>O pedido guarda o preço da época: mudar o preço no catálogo não muda pedido já enviado.</li></ul>
+<h3>Consolidação (Coordenação CNS)</h3>
+<ul><li>Para cada produto: quanto foi pedido, quanto tem no DML Central, a sugestão de compra e a coluna <b>Comprar</b>, que pode ser ajustada.</li>
+<li>Sugestão de compra = o que as casas pediram + o estoque mínimo do Central − o que já tem lá.</li>
+<li>Produtos abaixo do mínimo entram na lista mesmo sem pedido.</li>
+<li>A lista sai separada por fornecedor, com o subtotal de cada um. Também mostra o gasto por casa e por grupo e a separação para entrega. Dá para imprimir e baixar em Excel.</li>
+<li>Depois de liberada, a lista pode ser reaberta enquanto Compras não registrar a compra.</li></ul>
+<h3>Catálogo</h3>
+<ul><li>Novos campos: fornecedor (a casa não vê), produto com tamanho e o tamanho.</li>
+<li>Busca e filtro por fornecedor. Um aviso mostra quantos produtos estão sem preço.</li></ul>
+
+<h2>Se algo der errado</h2>
+<table>
+<tr><th>O que aparece</th><th>O que fazer</th></tr>
+<tr><td>“Erro interno” ao abrir Limpeza</td><td>O <code>v1.9.0_01</code> não foi importado. Volte ao passo 2.</td></tr>
+<tr><td>Erro “Duplicate column” no 01</td><td>Ele já tinha sido aplicado. Nada mudou: siga para o 02.</td></tr>
+<tr><td>Loja com só 17 produtos</td><td>Falta o <code>v1.9.0_02</code>.</td></tr>
+<tr><td>Orientadora não vê pedidos</td><td>Falta o grupo no perfil dela (passo 5).</td></tr>
+<tr><td>O pedido não abriu sozinho</td><td>Confira se a abertura automática está ligada e se hoje está entre o dia de abertura e o prazo. O ciclo abre no primeiro acesso a partir do dia marcado.</td></tr>
+</table>
+<p>Se travar, me mande uma foto da tela.</p>
+</body></html>

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Sistema CCB — Como atualizar para a v1.6.0</title>
+<style>
+  @font-face { font-family: "Space Grotesk"; src: url("../frontend/public/fontes/SpaceGrotesk.ttf"); font-weight: 300 700; }
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 10.5pt; line-height: 1.5; color: #17262b; margin: 0; }
+  h1 { font-size: 24pt; margin: 0 0 4pt; color: #043dac; letter-spacing: -0.3pt; }
+  h2 { font-size: 14pt; margin: 22pt 0 6pt; color: #043dac; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 14pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  .sub { color: #4d5f64; font-size: 11.5pt; margin-bottom: 14pt; }
+  .capa { border-bottom: 3pt solid #043dac; padding-bottom: 12pt; margin-bottom: 14pt; display: flex; gap: 14pt; align-items: center; }
+  .capa svg { flex: none; }
+  .passo { display: flex; gap: 12pt; margin: 12pt 0; break-inside: avoid; }
+  .num { flex: none; width: 26pt; height: 26pt; border-radius: 50%; background: #043dac; color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 12pt; }
+  .passo > div:not(.num) { flex: 1; min-width: 0; }
+  .duas figure { flex: none; width: 175pt; margin-top: 0; }
+  .duas figure img { width: 175pt !important; }
+  .passo h3 { margin-top: 3pt; }
+  ol, ul { margin: 0 0 7pt; padding-left: 16pt; }
+  li { margin: 2pt 0; }
+  .caixa { border-radius: 8pt; padding: 9pt 12pt; margin: 8pt 0; break-inside: avoid; }
+  .atencao { background: #fdf3e1; border-left: 4pt solid #c98a1b; }
+  .info { background: #eaf1ff; border-left: 4pt solid #043dac; }
+  .codigo { background: #17262b; color: #fff; border-radius: 10pt; padding: 12pt; text-align: center; margin: 10pt 0; break-inside: avoid; }
+  .codigo small { display: block; color: #b9c5c2; font-size: 9pt; margin-bottom: 3pt; }
+  .codigo strong { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 22pt; letter-spacing: 3pt; }
+  code { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; background: #eef2f1; padding: 0.5pt 4pt; border-radius: 3pt; font-size: 9.5pt; }
+  table { width: 100%; border-collapse: collapse; margin: 6pt 0 10pt; font-size: 9.5pt; break-inside: avoid; }
+  th, td { text-align: left; padding: 5pt 7pt; border-bottom: 0.6pt solid #dbe2e0; vertical-align: top; }
+  th { background: #f4f6f5; font-weight: 700; }
+  .arvore { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 9pt; background: #f4f6f5; border-radius: 8pt; padding: 10pt 12pt; white-space: pre; line-height: 1.45; margin: 8pt 0; break-inside: avoid; }
+  .arvore b { color: #043dac; }
+  .arvore i { color: #6f7f83; font-style: normal; }
+  figure { margin: 10pt 0; text-align: center; break-inside: avoid; }
+  figure img { max-width: 100%; border-radius: 6pt; border: 0.6pt solid #dbe2e0; }
+  figcaption { font-size: 9pt; color: #6f7f83; margin-top: 4pt; }
+  .duas { display: flex; gap: 14pt; align-items: flex-start; }
+  .duas > * { flex: 1; }
+  .quebra { break-before: page; }
+  .ok { color: #1d6b3a; font-weight: 700; }
+</style>
+<style>
+  .tres { display: flex; gap: 10pt; }
+  .tres figure { flex: 1; margin: 6pt 0; }
+  .tres img { width: 100%; }
+  td:first-child { white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="capa">
+  <svg width="54" height="54" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#043dac"/><path d="M256 104 392 210v190H120V210z" fill="none" stroke="#f4f6f5" stroke-width="32" stroke-linejoin="round"/><path d="M216 400V300h80v100" fill="none" stroke="#71a9ff" stroke-width="32" stroke-linejoin="round"/></svg>
+  <div>
+    <h1>Sistema CCB — Como atualizar</h1>
+    <div class="sub">Versão 1.6.0 · Chamado → Ordem de Serviço → Etapas, e visual novo · 17/10/2026</div>
+  </div>
+</div>
+
+<div class="caixa atencao"><b>Esta versão apaga os chamados e as obras de teste</b>, como combinado: o fluxo mudou e eles começam do zero. Casas, usuários, fotos das casas, limpeza e estoque continuam como estão.<br>
+Ela precisa da 1.5.0 (Estoques) já instalada. Se ainda não rodou algum SQL anterior, rode na ordem: <code>v1.4.0_cns_limpeza.sql</code> → <code>v1.5.0_estoques.sql</code> → <code>v1.6.0_ordens_de_servico.sql</code>.</div>
+
+<div class="caixa info">
+<b>Arquivos</b>
+<ul>
+  <li><code>v1.6.0_ordens_de_servico.sql</code>: cria as Ordens de Serviço, as etapas, as pendências e os modelos de etapas (phpMyAdmin)</li>
+  <li><code>ccb_v1.6.0_atualizacao.zip</code>: o sistema novo (por cima da pasta <code>ccb</code>)</li>
+  <li><code>codigo-fonte_v1.6.0.zip</code>: só cópia de segurança, não sobe</li>
+</ul>
+</div>
+
+<div class="passo"><div class="num">1</div><div>
+<h3>Cópia de segurança do banco</h3>
+<ol><li>phpMyAdmin → <b>Exportar</b> → <b>Executar</b>. Guarde o arquivo.</li></ol>
+</div></div>
+
+<div class="passo"><div class="num">2</div><div>
+<h3>Rodar o SQL</h3>
+<ol><li>phpMyAdmin → <b>Importar</b> → <code>v1.6.0_ordens_de_servico.sql</code> → <b>Importar</b>. Deve terminar com a mensagem verde.</li></ol>
+<div class="caixa atencao">Se aparecer <i>"Table 'ordens_servico' already exists"</i>, este SQL já foi aplicado. Se aparecer <i>"Table 'cns_produtos' doesn't exist"</i> ou algo de <i>estoque</i>, falta um SQL anterior: veja a ordem no quadro acima.</div>
+</div></div>
+
+<div class="passo"><div class="num">3</div><div>
+<h3>Subir o zip por cima da pasta ccb</h3>
+<ol>
+  <li>Gerenciador de Arquivos → <code>public_html</code> → envie <code>ccb_v1.6.0_atualizacao.zip</code>.</li>
+  <li>Botão direito → <b>Extrair</b> → aqui mesmo → <b>substituir</b> quando perguntar. Apague o zip.</li>
+</ol>
+<p>A senha do banco (<code>config.local.php</code>) e as fotos já enviadas não estão no zip e continuam como estão. Os arquivos antigos de Obras são substituídos por versões vazias, então não precisa apagar nada.</p>
+</div></div>
+
+<div class="passo"><div class="num">4</div><div>
+<h3>Conferir</h3>
+<ol>
+  <li>Atualize a página. No celular, feche o app e abra de novo (às vezes duas vezes). O visual novo e o ícone azul aparecem.</li>
+  <li>O menu mostra <b>Ordens de Serviço</b> (no celular, <b>OS</b>) no lugar de <b>Obras</b>.</li>
+  <li>Em <b>Ordens de Serviço → Modelos de etapas</b> já vêm 6 modelos: Pintura, Troca de piso, Elétrica, Hidráulica, Telhado e calhas e Obra (geral).</li>
+</ol>
+</div></div>
+
+<div class="quebra"></div>
+<h2>Como funciona agora</h2>
+<p>Tudo nasce de um chamado, igual ao SGK. A diferença entre <b>serviço</b> e <b>obra</b> é decidida na triagem.</p>
+<div class="arvore"><b>Chamado #45</b>  →  Triagem <i>(prioridade, responsável, serviço ou obra)</i>  →  Orçamento / teto
+           →  Segurança do Trabalho <i>(só nos tipos marcados)</i>  →  Aprovação
+           →  <b>OS 0012 aberta na hora</b>  →  etapas  →  OS concluída  →  a casa confirma  →  encerrado</div>
+
+<figure><img src="os-detalhe.png" style="width:100%"><figcaption>A Ordem de Serviço no computador: andamento, gráfico de evolução, etapas e pendências</figcaption></figure>
+
+<h3>Etapas</h3>
+<ul>
+  <li>Na OS, a equipe escolhe um <b>modelo</b> (as etapas entram de uma vez) e/ou cria <b>etapas personalizadas</b>. Dá para renomear, subir, descer e tirar as que ainda não foram marcadas.</li>
+  <li>Depois de <b>Iniciar a OS</b>, cada etapa recebe: <b>OK</b>, <b>Não OK</b>, <b>Não se aplica</b> ou <b>Em andamento</b> com o percentual (5% a 95%). Cada etapa aceita fotos.</li>
+  <li>O <b>andamento da OS</b> é a média das etapas que se aplicam: OK conta 100%, em andamento conta o percentual, Não OK conta 0%. "Não se aplica" sai da conta.</li>
+  <li>O <b>gráfico de evolução</b> mostra esse percentual dia a dia.</li>
+  <li>Para concluir, toda etapa precisa estar marcada (nenhuma "a fazer" ou "em andamento").</li>
+</ul>
+
+<div class="duas">
+  <figure><img src="os-etapas-cel.png"><figcaption>Etapas no celular: um toque para OK</figcaption></figure>
+  <div>
+    <h3>Pendências</h3>
+    <ul>
+      <li><b>Não OK</b> pede para dizer o que faltou e vira uma <b>pendência</b>.</li>
+      <li>A pendência <b>não trava a OS</b>: dá para concluir e resolver depois, mesmo com o chamado já encerrado.</li>
+      <li>Ao resolver, a pessoa escreve o que foi feito e a etapa passa a OK (o andamento sobe).</li>
+      <li>Todas as pendências abertas ficam em <b>Ordens de Serviço → Pendências</b>.</li>
+    </ul>
+    <h3>Obra</h3>
+    <ul>
+      <li>O valor enviado é o <b>teto</b>, e quem aprova são sempre os Procuradores.</li>
+      <li>Aprovado, a OS da obra já nasce com o teto. Os <b>gastos</b> são lançados na OS (Engenharia, Gestão e Compras).</li>
+      <li>Gasto acima do teto é aceito, mas a obra fica em vermelho e só conclui depois de aprovado um teto novo.</li>
+      <li>A casa acompanha as etapas e o andamento da obra, sem ver valores.</li>
+    </ul>
+    <h3>Serviço</h3>
+    <ul><li>Sem controle de gastos. Se o valor mudar durante a execução, continua valendo o "Mudou o valor" no chamado, com as alçadas de sempre.</li></ul>
+  </div>
+</div>
+
+<div class="quebra"></div>
+<figure><img src="os-lista.png" style="width:100%"><figcaption>Lista das Ordens de Serviço: andamento de cada uma, pendências e quem precisa agir</figcaption></figure>
+
+<table>
+<tr><th>Perfil</th><th>Nos chamados e nas Ordens de Serviço</th></tr>
+<tr><td>Casa de Oração</td><td>Abre chamados (sempre como serviço), acompanha a OS e as etapas, confirma no fim. Não vê valores de obra.</td></tr>
+<tr><td>Coordenação de Manutenção</td><td>Triagem do grupo (decide serviço ou obra), orçamento e aprovação até R$ 500. Executa a OS e cria modelos de etapas.</td></tr>
+<tr><td>Gestão de Manutenção</td><td>O mesmo em todas as casas; aprova até R$ 1.000. Lança gastos de obra.</td></tr>
+<tr><td>Equipe de Manutenção</td><td>Orça, monta as etapas, inicia, marca e conclui a OS que está com ela. Cria modelos de etapas.</td></tr>
+<tr><td>Engenharia</td><td>Abre o chamado já como obra, faz a triagem, pede o teto, toca e conclui a OS da obra, lança gastos e pede teto novo.</td></tr>
+<tr><td>Compras</td><td>Registra orçamentos e lança gastos das obras.</td></tr>
+<tr><td>Segurança do Trabalho</td><td>Parecer antes da aprovação, nos tipos marcados.</td></tr>
+<tr><td>Procurador</td><td>Aprova acima de R$ 1.000, as reaprovações e todo teto de obra.</td></tr>
+</table>
+
+<h2>Visual novo</h2>
+<p>As telas seguem o padrão do SGK: azul Konstante, fonte Space Grotesk, cartões com cantos suaves e controles em abas. No computador, menu lateral com o seu nome embaixo, listas mais largas e a OS em duas colunas (etapas à esquerda; pendências, valores e o pedido à direita). No celular, menu embaixo, como antes.</p>
+
+<h2>Se algo der errado</h2>
+<table>
+<tr><th>O que aparece</th><th>O que fazer</th></tr>
+<tr><td>Ainda aparece "Obras" no menu</td><td>O app antigo ficou guardado. Feche e abra de novo, ou atualize a página no navegador.</td></tr>
+<tr><td>"Erro interno" em Chamados ou OS</td><td>O SQL da 1.6.0 não foi importado. Volte ao passo 2.</td></tr>
+<tr><td>"Erro interno" ao entrar</td><td>O <code>config.local.php</code> foi substituído ou apagado. Recoloque nome do banco, usuário e senha.</td></tr>
+<tr><td>Não aparecem os botões OK / Não OK</td><td>A OS ainda não foi iniciada, ou você não é o responsável por ela. Inicie a OS ou peça para a Coordenação mudar o responsável.</td></tr>
+</table>
+<p>Testado: 332 testes automáticos aprovados, o fluxo completo no navegador (computador e celular) e a atualização numa cópia de banco da 1.5.0 com dados. Se travar, me mande uma foto da tela.</p>
+</body></html>

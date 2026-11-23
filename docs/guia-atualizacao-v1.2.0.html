@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Sistema CCB — Como atualizar para a v1.2.0</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 10.5pt; line-height: 1.5; color: #17262b; margin: 0; }
+  h1 { font-size: 24pt; margin: 0 0 4pt; color: #1e4d5c; letter-spacing: -0.3pt; }
+  h2 { font-size: 14pt; margin: 22pt 0 6pt; color: #1e4d5c; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 14pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  .sub { color: #4d5f64; font-size: 11.5pt; margin-bottom: 14pt; }
+  .capa { border-bottom: 3pt solid #1e4d5c; padding-bottom: 12pt; margin-bottom: 14pt; display: flex; gap: 14pt; align-items: center; }
+  .capa svg { flex: none; }
+  .passo { display: flex; gap: 12pt; margin: 12pt 0; break-inside: avoid; }
+  .num { flex: none; width: 26pt; height: 26pt; border-radius: 50%; background: #1e4d5c; color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 12pt; }
+  .passo > div:not(.num) { flex: 1; min-width: 0; }
+  .duas figure { flex: none; width: 175pt; margin-top: 0; }
+  .duas figure img { width: 175pt !important; }
+  .passo h3 { margin-top: 3pt; }
+  ol, ul { margin: 0 0 7pt; padding-left: 16pt; }
+  li { margin: 2pt 0; }
+  .caixa { border-radius: 8pt; padding: 9pt 12pt; margin: 8pt 0; break-inside: avoid; }
+  .atencao { background: #fdf3e1; border-left: 4pt solid #c98a1b; }
+  .info { background: #e3eef0; border-left: 4pt solid #1e4d5c; }
+  .codigo { background: #17262b; color: #fff; border-radius: 10pt; padding: 12pt; text-align: center; margin: 10pt 0; break-inside: avoid; }
+  .codigo small { display: block; color: #b9c5c2; font-size: 9pt; margin-bottom: 3pt; }
+  .codigo strong { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 22pt; letter-spacing: 3pt; }
+  code { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; background: #eef2f1; padding: 0.5pt 4pt; border-radius: 3pt; font-size: 9.5pt; }
+  table { width: 100%; border-collapse: collapse; margin: 6pt 0 10pt; font-size: 9.5pt; break-inside: avoid; }
+  th, td { text-align: left; padding: 5pt 7pt; border-bottom: 0.6pt solid #dbe2e0; vertical-align: top; }
+  th { background: #f4f6f5; font-weight: 700; }
+  .arvore { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 9pt; background: #f4f6f5; border-radius: 8pt; padding: 10pt 12pt; white-space: pre; line-height: 1.45; margin: 8pt 0; break-inside: avoid; }
+  .arvore b { color: #1e4d5c; }
+  .arvore i { color: #6f7f83; font-style: normal; }
+  figure { margin: 10pt 0; text-align: center; break-inside: avoid; }
+  figure img { max-width: 100%; border-radius: 6pt; border: 0.6pt solid #dbe2e0; }
+  figcaption { font-size: 9pt; color: #6f7f83; margin-top: 4pt; }
+  .duas { display: flex; gap: 14pt; align-items: flex-start; }
+  .duas > * { flex: 1; }
+  .quebra { break-before: page; }
+  .ok { color: #1d6b3a; font-weight: 700; }
+</style>
+<style>
+  .tres { display: flex; gap: 10pt; }
+  .tres figure { flex: 1; margin: 6pt 0; }
+  .tres img { width: 100%; }
+  td:first-child { white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="capa">
+  <svg width="54" height="54" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#1e4d5c"/><path d="M256 104 392 210v190H120V210z" fill="none" stroke="#f4f6f5" stroke-width="32" stroke-linejoin="round"/><path d="M216 400V300h80v100" fill="none" stroke="#e8b04a" stroke-width="32" stroke-linejoin="round"/></svg>
+  <div>
+    <h1>Sistema CCB — Como atualizar</h1>
+    <div class="sub">Versão 1.2.0 · Fase 3 (Chamados) + página da casa completa · 16/10/2026</div>
+  </div>
+</div>
+
+<p>É o mesmo processo de antes: um SQL no phpMyAdmin e um zip no <code>public_html</code>. Leva uns 10 minutos.
+Nenhum dado é apagado e a senha do banco continua a mesma: o zip <b>não</b> traz o <code>config.local.php</code>.</p>
+
+<div class="caixa info">
+<b>Arquivos</b>
+<ul>
+  <li><code>03_chamados.sql</code>: cria as tabelas dos chamados (phpMyAdmin)</li>
+  <li><code>ccb_v1.2.0_atualizacao.zip</code>: o sistema novo (vai por cima da pasta <code>ccb</code>)</li>
+  <li><code>04_usuarios_teste_opcional.sql</code>: 6 usuários de teste para mostrar à coordenação (opcional)</li>
+  <li><code>codigo-fonte_v1.2.0.zip</code>: só cópia de segurança, não sobe</li>
+</ul>
+</div>
+
+<div class="passo"><div class="num">1</div><div>
+<h3>Cópia de segurança do banco</h3>
+<ol><li>phpMyAdmin do banco <code>u192849708_ccb</code> → aba <b>Exportar</b> → <b>Executar</b>. Guarde o arquivo.</li></ol>
+</div></div>
+
+<div class="passo"><div class="num">2</div><div>
+<h3>Rodar o SQL dos chamados</h3>
+<ol>
+  <li>No mesmo phpMyAdmin → aba <b>Importar</b> → escolha <code>03_chamados.sql</code> → <b>Importar</b>.</li>
+  <li>Deve terminar com a mensagem verde de "Importação finalizada".</li>
+  <li><i>(Opcional)</i> Faça o mesmo com <code>04_usuarios_teste_opcional.sql</code>.</li>
+</ol>
+<div class="caixa atencao">Rode o <code>03</code> uma vez só. Se aparecer <i>"Table 'chamados_categorias' already exists"</i>, ele já foi aplicado e nada foi alterado: siga para o passo 3.</div>
+</div></div>
+
+<div class="passo"><div class="num">3</div><div>
+<h3>Subir o zip por cima da pasta ccb</h3>
+<ol>
+  <li>Gerenciador de Arquivos → entre em <code>public_html</code>.</li>
+  <li>Envie <code>ccb_v1.2.0_atualizacao.zip</code> para dentro do <code>public_html</code>.</li>
+  <li>Botão direito no zip → <b>Extrair</b> → aqui mesmo (<code>public_html</code>). Se perguntar se quer substituir os arquivos, escolha <b>substituir</b>.</li>
+  <li>Apague o zip.</li>
+</ol>
+<div class="caixa info">Desta vez é para substituir por cima, ao contrário da primeira instalação. O zip só traz arquivos do sistema. Sua senha (<code>nucleo/config/config.local.php</code>) e as fotos (<code>nucleo/arquivos</code>, criada sozinha no primeiro envio) não são tocadas.</div>
+</div></div>
+
+<div class="passo"><div class="num">4</div><div>
+<h3>Conferir</h3>
+<ol>
+  <li>Abra <code>https://ccb.konstante.com.br</code> e atualize a página. No celular, feche o app e abra de novo (às vezes duas vezes).</li>
+  <li>O menu deve mostrar <b>Chamados</b>.</li>
+  <li>Abra uma casa e adicione alguém no <b>Ministério</b> ou uma <b>foto</b>. Agora salva (antes dava erro).</li>
+</ol>
+</div></div>
+
+<h2>Se algo der errado</h2>
+<table>
+<tr><th>O que aparece</th><th>O que fazer</th></tr>
+<tr><td>Menu sem "Chamados"</td><td>O app antigo ficou guardado no celular. Feche e abra de novo, ou atualize a página no navegador.</td></tr>
+<tr><td>"Erro interno" ao abrir Chamados</td><td>O <code>03_chamados.sql</code> não foi importado. Volte ao passo 2.</td></tr>
+<tr><td>"Erro interno" ao entrar</td><td>O <code>config.local.php</code> foi substituído ou apagado. Recoloque nome do banco, usuário e senha (como na instalação).</td></tr>
+<tr><td>Foto não sobe</td><td>No hPanel → Avançado → Configuração do PHP, confira se as extensões <b>gd</b> e <b>fileinfo</b> estão ligadas (normalmente já estão).</td></tr>
+</table>
+<p>Se travar, me mande uma foto da tela.</p>
+
+<div class="quebra"></div>
+<h2>O que entrou nesta versão</h2>
+<div class="tres">
+  <figure><img src="tela-inicio-casa.png"><figcaption>A casa vê o que espera por ela e abre chamados com um toque</figcaption></figure>
+  <figure><img src="tela-abrir-chamado.png"><figcaption>Abrir chamado: tipo do problema em botões grandes, onde fica, fotos</figcaption></figure>
+  <figure><img src="tela-triagem.png"><figcaption>A Coordenação recebe "Sua vez" e faz a triagem</figcaption></figure>
+</div>
+
+<h3>Caminho de um chamado</h3>
+<p><b>Pedido</b> (casa) → <b>Triagem</b> (Coordenação do grupo: prioridade e responsável) → <b>Orçamento</b> (Equipe ou Compras)
+→ <b>Segurança do Trabalho</b> (só nos tipos marcados: Elétrica, Telhado, Incêndio) → <b>Aprovação</b> → <b>Serviço</b> (Equipe) → <b>Confirmação</b> (a casa diz se resolveu, ou reabre).
+Em qualquer ponto a Coordenação pode cancelar com motivo, ou mandar para <b>Obras</b> (Fase 4).</p>
+
+<table>
+<tr><th>Perfil</th><th>O que faz nos chamados</th></tr>
+<tr><td>Casa de Oração</td><td>Abre chamados da própria casa, manda fotos, conversa e confirma a solução. Cancela só antes da triagem.</td></tr>
+<tr><td>Coordenação de Manutenção</td><td>Triagem, orçamento e aprovação até R$ 500 nas casas do seu grupo.</td></tr>
+<tr><td>Gestão de Manutenção</td><td>O mesmo em todas as casas; aprova até R$ 1.000. Faz a triagem quando o grupo não tem Coordenação.</td></tr>
+<tr><td>Equipe de Manutenção</td><td>Orça, executa e conclui os serviços que estão com ela (ou ainda sem responsável).</td></tr>
+<tr><td>Compras</td><td>Registra orçamentos.</td></tr>
+<tr><td>Segurança do Trabalho</td><td>Dá o parecer (favorável, com ressalvas ou desfavorável) antes da aprovação.</td></tr>
+<tr><td>Procurador</td><td>Aprova acima de R$ 1.000 e as reaprovações.</td></tr>
+<tr><td>Engenharia e Administrador</td><td>Acompanham. O Administrador também edita os tipos de chamado.</td></tr>
+</table>
+
+<h3>Regras de valor (Administração → Alçadas e regras)</h3>
+<ul>
+  <li><b>Até R$ 500:</b> aprova a Coordenação. <b>Até R$ 1.000:</b> aprova a Gestão. <b>Acima disso:</b> aprovam os Procuradores. Quem tem alçada maior também pode aprovar as menores.</li>
+  <li><b>Acima de R$ 500</b> o orçamento precisa ir anexado (foto ou PDF).</li>
+  <li><b>Reaprovação:</b> se, durante o serviço, o valor subir R$ 2.000 ou mais acima do aprovado, volta para os Procuradores. Se subir menos mas mudar de faixa (ex.: de R$ 400 para R$ 800), volta para a alçada nova. A conta é sempre contra o último valor aprovado, então vários aumentos pequenos não escapam.</li>
+  <li>Ninguém conclui um serviço com valor acima do aprovado sem passar pela aprovação.</li>
+</ul>
+
+<h3>Página da casa (v1.1.0, agora completa)</h3>
+<p>Ministério com telefone (toque para ligar), fotos com capa e legenda, horários de culto, capacidade e observações. Quem edita: o Administrador.</p>
+
+<h2>Usuários de teste (se rodou o 04)</h2>
+<p>Senha de todos: <code>Demo2026x</code>. Todos ligados à casa <b>Jardim Leônidas Moreira</b> (Grupo 8.1).</p>
+<table>
+<tr><th>E-mail</th><th>Perfil</th></tr>
+<tr><td><code>casa@teste.ccb</code></td><td>Casa de Oração (Jardim Leônidas Moreira)</td></tr>
+<tr><td><code>coord81@teste.ccb</code></td><td>Coordenação de Manutenção, Grupo 8.1</td></tr>
+<tr><td><code>gestao@teste.ccb</code> · <code>equipe@teste.ccb</code></td><td>Gestão · Equipe de Manutenção</td></tr>
+<tr><td><code>seguranca@teste.ccb</code> · <code>procurador@teste.ccb</code></td><td>Segurança do Trabalho · Procurador</td></tr>
+</table>
+<p>Para tirar depois: Administração → Usuários → abra cada um → desmarque "Acesso ativo".</p>
+
+<h2>Decisões técnicas (para registro)</h2>
+<table>
+<tr><th>Assunto</th><th>Decisão</th></tr>
+<tr><td>Fotos</td><td>Reduzidas no celular (1.600 px) e regravadas no servidor, o que apaga a localização (GPS). Ficam em <code>nucleo/arquivos</code>, fora da internet, e só abrem para quem pode ver a casa ou o chamado.</td></tr>
+<tr><td>Prazo de guarda</td><td>Conta a partir do encerramento do chamado: fotos 24 meses, orçamentos e notas 60 meses (editável).</td></tr>
+<tr><td>Histórico</td><td>Cada passo fica na linha do tempo do chamado e na Auditoria. Orçamento já aprovado não pode ser apagado.</td></tr>
+<tr><td>Duas pessoas ao mesmo tempo</td><td>O chamado é travado durante cada ação: duas aprovações simultâneas não passam juntas.</td></tr>
+<tr><td>Avisos</td><td>Por enquanto, dentro do app: número no menu e "Sua vez". E-mail/WhatsApp podem vir depois.</td></tr>
+<tr><td>Testes</td><td>144 testes automáticos aprovados (52 antigos + 92 novos), mais o fluxo completo testado no navegador e a atualização feita numa cópia do banco de produção.</td></tr>
+</table>
+</body>
+</html>

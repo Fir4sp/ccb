@@ -1,0 +1,2 @@
+# Proteção extra: se esta pasta for parar dentro de public_html, nada aqui é servido.
+Require all denied

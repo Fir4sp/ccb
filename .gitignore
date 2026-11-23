@@ -1,0 +1,11 @@
+# Nunca no GitHub: senha do banco, fotos/anexos reais, backups e logs
+backend/config/config.local.php
+backend/arquivos/*
+!backend/arquivos/.htaccess
+*.zip
+*.sql.gz
+error_log
+*.log
+node_modules/
+frontend/dist/
+.DS_Store

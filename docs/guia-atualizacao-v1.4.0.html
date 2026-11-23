@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Sistema CCB — Como atualizar para a v1.4.0</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 10.5pt; line-height: 1.5; color: #17262b; margin: 0; }
+  h1 { font-size: 24pt; margin: 0 0 4pt; color: #1e4d5c; letter-spacing: -0.3pt; }
+  h2 { font-size: 14pt; margin: 22pt 0 6pt; color: #1e4d5c; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 14pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  .sub { color: #4d5f64; font-size: 11.5pt; margin-bottom: 14pt; }
+  .capa { border-bottom: 3pt solid #1e4d5c; padding-bottom: 12pt; margin-bottom: 14pt; display: flex; gap: 14pt; align-items: center; }
+  .capa svg { flex: none; }
+  .passo { display: flex; gap: 12pt; margin: 12pt 0; break-inside: avoid; }
+  .num { flex: none; width: 26pt; height: 26pt; border-radius: 50%; background: #1e4d5c; color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 12pt; }
+  .passo > div:not(.num) { flex: 1; min-width: 0; }
+  .duas figure { flex: none; width: 175pt; margin-top: 0; }
+  .duas figure img { width: 175pt !important; }
+  .passo h3 { margin-top: 3pt; }
+  ol, ul { margin: 0 0 7pt; padding-left: 16pt; }
+  li { margin: 2pt 0; }
+  .caixa { border-radius: 8pt; padding: 9pt 12pt; margin: 8pt 0; break-inside: avoid; }
+  .atencao { background: #fdf3e1; border-left: 4pt solid #c98a1b; }
+  .info { background: #e3eef0; border-left: 4pt solid #1e4d5c; }
+  .codigo { background: #17262b; color: #fff; border-radius: 10pt; padding: 12pt; text-align: center; margin: 10pt 0; break-inside: avoid; }
+  .codigo small { display: block; color: #b9c5c2; font-size: 9pt; margin-bottom: 3pt; }
+  .codigo strong { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 22pt; letter-spacing: 3pt; }
+  code { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; background: #eef2f1; padding: 0.5pt 4pt; border-radius: 3pt; font-size: 9.5pt; }
+  table { width: 100%; border-collapse: collapse; margin: 6pt 0 10pt; font-size: 9.5pt; break-inside: avoid; }
+  th, td { text-align: left; padding: 5pt 7pt; border-bottom: 0.6pt solid #dbe2e0; vertical-align: top; }
+  th { background: #f4f6f5; font-weight: 700; }
+  .arvore { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 9pt; background: #f4f6f5; border-radius: 8pt; padding: 10pt 12pt; white-space: pre; line-height: 1.45; margin: 8pt 0; break-inside: avoid; }
+  .arvore b { color: #1e4d5c; }
+  .arvore i { color: #6f7f83; font-style: normal; }
+  figure { margin: 10pt 0; text-align: center; break-inside: avoid; }
+  figure img { max-width: 100%; border-radius: 6pt; border: 0.6pt solid #dbe2e0; }
+  figcaption { font-size: 9pt; color: #6f7f83; margin-top: 4pt; }
+  .duas { display: flex; gap: 14pt; align-items: flex-start; }
+  .duas > * { flex: 1; }
+  .quebra { break-before: page; }
+  .ok { color: #1d6b3a; font-weight: 700; }
+</style>
+<style>
+  .tres { display: flex; gap: 10pt; }
+  .tres figure { flex: 1; margin: 6pt 0; }
+  .tres img { width: 100%; }
+  td:first-child { white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="capa">
+  <svg width="54" height="54" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#1e4d5c"/><path d="M256 104 392 210v190H120V210z" fill="none" stroke="#f4f6f5" stroke-width="32" stroke-linejoin="round"/><path d="M216 400V300h80v100" fill="none" stroke="#e8b04a" stroke-width="32" stroke-linejoin="round"/></svg>
+  <div>
+    <h1>Sistema CCB — Como atualizar</h1>
+    <div class="sub">Versão 1.4.0 · Fase 5 (CNS Limpeza) · 16/10/2026</div>
+  </div>
+</div>
+
+<div class="caixa atencao"><b>Uma versão de cada vez.</b> Instale na ordem: primeiro a 1.3.0 (Obras) e depois esta. Se ainda não subiu a 1.3.0, rode o <code>v1.3.0_obras.sql</code> antes do SQL desta versão. O zip da 1.4.0 já traz tudo, então não precisa subir o zip da 1.3.0.</div>
+
+<div class="caixa info">
+<b>Arquivos</b>
+<ul>
+  <li><code>v1.4.0_cns_limpeza.sql</code>: cria as tabelas da limpeza e o catálogo inicial com 17 produtos (phpMyAdmin)</li>
+  <li><code>ccb_v1.4.0_atualizacao.zip</code>: o sistema novo (por cima da pasta <code>ccb</code>)</li>
+  <li><code>v1.4.0_usuarios_teste_opcional.sql</code>: Orientadora e Coordenação CNS de teste (opcional)</li>
+  <li><code>codigo-fonte_v1.4.0.zip</code>: só cópia de segurança, não sobe</li>
+</ul>
+</div>
+
+<div class="passo"><div class="num">1</div><div>
+<h3>Cópia de segurança do banco</h3>
+<ol><li>phpMyAdmin → <b>Exportar</b> → <b>Executar</b>. Guarde o arquivo.</li></ol>
+</div></div>
+
+<div class="passo"><div class="num">2</div><div>
+<h3>Rodar o SQL</h3>
+<ol>
+  <li>phpMyAdmin → <b>Importar</b> → <code>v1.4.0_cns_limpeza.sql</code> → <b>Importar</b>. Deve terminar com a mensagem verde.</li>
+  <li><i>(Opcional)</i> Faça o mesmo com <code>v1.4.0_usuarios_teste_opcional.sql</code>.</li>
+</ol>
+<div class="caixa atencao">Se aparecer <i>"Table 'obras' doesn't exist"</i>, falta o SQL da 1.3.0: rode o <code>v1.3.0_obras.sql</code> primeiro. Se aparecer <i>"Table 'cns_produtos' already exists"</i>, este SQL já foi aplicado.</div>
+</div></div>
+
+<div class="passo"><div class="num">3</div><div>
+<h3>Subir o zip por cima da pasta ccb</h3>
+<ol>
+  <li>Gerenciador de Arquivos → <code>public_html</code> → envie <code>ccb_v1.4.0_atualizacao.zip</code>.</li>
+  <li>Botão direito → <b>Extrair</b> → aqui mesmo → <b>substituir</b> quando perguntar. Apague o zip.</li>
+</ol>
+</div></div>
+
+<div class="passo"><div class="num">4</div><div>
+<h3>Conferir</h3>
+<ol>
+  <li>Atualize a página (no celular, feche e abra o app). O menu deve mostrar <b>Limpeza</b>.</li>
+  <li>Entre como Coordenação CNS, confira o <b>Catálogo</b> (de preferência com fotos) e abra o primeiro <b>ciclo</b> com o prazo.</li>
+</ol>
+</div></div>
+
+<div class="quebra"></div>
+<h2>Como funciona a CNS Limpeza</h2>
+<div class="tres">
+  <figure><img src="limpeza-inicio.png"><figcaption>A casa vê na tela inicial que é hora de pedir</figcaption></figure>
+  <figure><img src="limpeza-loja.png"><figcaption>Loja com foto grande e botões + e −; o pedido é salvo sozinho</figcaption></figure>
+  <figure><img src="limpeza-conferir.png"><figcaption>A orientadora confere, ajusta e aprova</figcaption></figure>
+</div>
+<ol>
+  <li><b>Ciclo:</b> a Coordenação CNS abre o ciclo do mês (ex.: "Novembro/2026") com um prazo e, se quiser, um recado para as casas.</li>
+  <li><b>Pedido:</b> a casa entra em <b>Limpeza</b>, toca em <b>Adicionar</b>, usa + e − e envia. Não há preços nem cobrança na tela da casa. Até o prazo dá para desfazer o envio e corrigir. A orientadora também pode montar o pedido pela casa.</li>
+  <li><b>Conferência:</b> a orientadora das casas atribuídas confere, ajusta quantidades se precisar e <b>aprova</b>, ou <b>devolve</b> com um recado. Casas sem orientadora são conferidas pela Coordenação CNS.</li>
+  <li><b>Fechamento:</b> depois do prazo, a Coordenação fecha o ciclo e pode aprovar de uma vez os pedidos enviados que ainda não foram conferidos. Pedidos não enviados ficam fora do ciclo.</li>
+  <li><b>Compra:</b> sai o <b>consolidado</b>, com a lista de compra por produto (e estimativa pelos preços de referência) e a <b>separação por grupo e casa</b>, para imprimir ou baixar em planilha. Compras registra a compra.</li>
+  <li><b>Entrega:</b> a Coordenação marca a entrega e cada casa confirma que recebeu, ou anota o que faltou.</li>
+</ol>
+
+<table>
+<tr><th>Perfil</th><th>Na limpeza</th></tr>
+<tr><td>Casa de Oração</td><td>Faz o pedido da própria casa e confirma o recebimento. Não vê preços.</td></tr>
+<tr><td>Orientadora CNS</td><td>Confere e aprova os pedidos das casas atribuídas. Pode montar o pedido por elas.</td></tr>
+<tr><td>Coordenação CNS</td><td>Catálogo (fotos, preços de referência, limite por pedido), ciclos, conferência das casas sem orientadora, fechamento, consolidado e entrega.</td></tr>
+<tr><td>Compras</td><td>Vê o consolidado com preços e registra a compra.</td></tr>
+</table>
+
+<h2>Também nesta versão: obra acima do teto fica em vermelho</h2>
+<p>Como combinado, o gasto que passa do teto agora é <b>aceito</b>, porque o dinheiro já foi gasto. A obra fica <b>em vermelho</b>, com o aviso de quanto passou, e quem cuida dela recebe "Sua vez" para pedir o teto novo. Enquanto estiver acima do teto, a obra não pode ser concluída. A casa continua sem ver valores.</p>
+
+<h2>Usuários de teste (se rodou o SQL opcional)</h2>
+<p>Senha <code>Demo2026x</code>: <code>orientadora@teste.ccb</code> (Jardim Leônidas Moreira) e <code>cns@teste.ccb</code>. Para o fluxo completo, use também <code>casa@teste.ccb</code> e <code>compras@teste.ccb</code>.</p>
+
+<h2>Decisões técnicas (para registro)</h2>
+<table>
+<tr><th>Assunto</th><th>Decisão</th></tr>
+<tr><td>Ciclos</td><td>Só um ciclo recebendo pedidos por vez, garantido pelo próprio banco. Cada casa tem um pedido por ciclo.</td></tr>
+<tr><td>Prazo</td><td>Vale o dia inteiro do prazo (horário de Brasília). Depois disso a casa não envia nem corrige. A Coordenação pode mudar o prazo enquanto o ciclo está aberto.</td></tr>
+<tr><td>Ajustes</td><td>O que a casa pediu e o que a orientadora aprovou ficam guardados lado a lado, e cada ajuste fica no histórico do pedido.</td></tr>
+<tr><td>Estoque</td><td>Esta fase não mexe no estoque dos DMLs. A entrada e saída de material entra na Fase 6 (Estoques).</td></tr>
+<tr><td>Testes</td><td>253 testes automáticos aprovados (56 novos), fluxo completo no navegador e atualização feita numa cópia do banco de produção, na ordem 1.2.0 → 1.3.0 → 1.4.0.</td></tr>
+</table>
+</body>
+</html>

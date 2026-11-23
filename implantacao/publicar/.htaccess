@@ -1,0 +1,36 @@
+# Sistema CCB — hospedagem Apache/LiteSpeed (Hostinger)
+Options -Indexes
+RewriteEngine On
+
+# Sempre HTTPS
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# Arquivos ocultos nunca são servidos
+RewriteRule (^|/)\. - [F]
+
+# Arquivo interno
+RewriteRule ^localizar_app\.php$ - [F]
+
+# API
+RewriteRule ^api/ - [L]
+
+# App (PWA): qualquer outro caminho cai no index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.html [L]
+
+<IfModule mod_headers.c>
+  Header always set Strict-Transport-Security "max-age=31536000"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "same-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=()"
+  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+  # O service worker e o index.html precisam sempre da versão nova
+  <FilesMatch "^(sw\.js|index\.html|manifest\.webmanifest)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "\.(js|css|png|svg|woff2)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
