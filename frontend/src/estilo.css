@@ -1570,3 +1570,8 @@ button.item { width: 100%; border: 0; background: none; text-align: left; font: 
 .cartao-cabeca strong { white-space: nowrap; }
 @media (max-width: 520px) { .etapas-pedido { grid-template-columns: 1fr; } }
 @media print { .tabela-compra td:first-child { min-width: 0; } .qtd-compra { border: 0; } }
+
+/* v1.9.1 — instalar o app */
+.botao-instalar { border-color: var(--primaria); width: 100%; color: var(--primaria); background: var(--superficie); gap: 8px; margin-top: 14px; font-weight: 600; }
+.botao-instalar svg { flex: none; }
+.dica-instalar { background: var(--primaria-clara, #e8eefb); color: var(--tinta-2, #33404a); border-radius: 10px; margin: 14px 0 0; padding: 10px 12px; font-size: .9rem; line-height: 1.45; }

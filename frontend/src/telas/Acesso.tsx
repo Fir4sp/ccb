@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { api, carregarSessao, type Usuario } from '../api'
 import { Aviso, Campo, camposDe, mensagemDe } from '../ui'
+import { InstalarApp } from '../instalar'
 
 export function Entrar({ aoEntrar }: { aoEntrar: (u: Usuario) => void }) {
   const [email, setEmail] = useState('')
@@ -37,6 +38,7 @@ export function Entrar({ aoEntrar }: { aoEntrar: (u: Usuario) => void }) {
             {enviando ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
+        <InstalarApp />
         <p className="rodape-entrada">Esqueceu a senha? Fale com o administrador do sistema.</p>
       </div>
     </main>

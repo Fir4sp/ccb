@@ -117,6 +117,48 @@ final class UsuariosControlador
         return ['ok' => true];
     }
 
+    /**
+     * Exclui o usuário de vez. Só é possível enquanto ele não tem histórico
+     * (chamados, OS, pedidos, gastos...). Com histórico, o caminho é desativar o acesso.
+     */
+    public static function excluir(Requisicao $r, int $id): array
+    {
+        Acesso::exigir('admin.usuarios');
+        $t = Sessao::tenantId();
+        $antes = self::carregar($t, $id);
+        if ($id === Sessao::usuario()['id']) {
+            throw new HttpErro(422, 'Você não pode excluir o próprio usuário.');
+        }
+        if (in_array('administrador', array_column($antes['perfis'], 'perfil'), true)) {
+            $outros = (int) Db::one(
+                'SELECT COUNT(DISTINCT u.id) n FROM usuarios u
+                   JOIN usuarios_perfis up ON up.tenant_id = u.tenant_id AND up.usuario_id = u.id
+                   JOIN perfis p ON p.id = up.perfil_id
+                  WHERE u.tenant_id = ? AND u.id <> ? AND u.ativo = 1 AND p.codigo = ?',
+                [$t, $id, 'administrador']
+            )['n'];
+            if ($outros === 0) throw new HttpErro(422, 'Este é o único administrador ativo. Defina outro administrador antes de excluir.');
+        }
+        try {
+            Db::transacao(function () use ($t, $id) {
+                Db::run('DELETE FROM usuarios_perfis WHERE tenant_id = ? AND usuario_id = ?', [$t, $id]);
+                Db::run('DELETE FROM usuarios_casas WHERE tenant_id = ? AND usuario_id = ?', [$t, $id]);
+                Db::run('DELETE FROM orientadoras_casas WHERE tenant_id = ? AND usuario_id = ?', [$t, $id]);
+                Db::run('DELETE FROM areas_membros WHERE tenant_id = ? AND usuario_id = ?', [$t, $id]);
+                Db::run('DELETE FROM usuarios WHERE tenant_id = ? AND id = ?', [$t, $id]);
+            });
+        } catch (\PDOException $e) {
+            // 1451: o usuário aparece em registros do sistema (chave estrangeira).
+            if ((int) ($e->errorInfo[1] ?? 0) === 1451) {
+                throw new HttpErro(409, 'Este usuário já tem histórico no sistema (chamados, ordens de serviço, pedidos ou estoque) e não pode ser excluído. Desmarque "Acesso ativo" para bloquear a entrada dele.');
+            }
+            throw $e;
+        }
+        Acesso::limparCache();
+        Auditoria::registrar('excluir', 'usuarios', $id, $antes, null);
+        return ['ok' => true];
+    }
+
     // ---------------------------------------------------------------- vínculos
 
     /**

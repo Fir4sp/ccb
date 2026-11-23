@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { api, type AgendaLimpeza, type Ciclo, type Loja, type PedidoLimpeza, type Produto, type ResumoLimpeza, type Usuario } from '../api'
-import { AreaTexto, Aviso, Campo, Carregando, Icone, Topo, Vazio, camposDe, dataCurta, dataDia, dataHora, mensagemDe, reais, reduzirImagem } from '../ui'
+import { AreaTexto, Aviso, Campo, Carregando, Icone, Selecao, Topo, Vazio, camposDe, dataCurta, dataDia, dataHora, ir, mensagemDe, reais, reduzirImagem } from '../ui'
 
 // ================================================================ textos
 
@@ -721,9 +721,12 @@ export function PedidosLimpeza() {
   const [dados, setDados] = useState<{ ciclo: Ciclo | null; itens: ItemLista[]; sem_pedido?: { id: number; nome: string; grupo: string }[] } | null>(null)
   const [so, setSo] = useState<'mim' | 'todos'>('todos')
   const [erro, setErro] = useState('')
+  const [ciclos, setCiclos] = useState<Ciclo[]>([])
+  const [cicloId, setCicloId] = useState('')
+  useEffect(() => { api<Ciclo[]>('GET', '/cns/ciclos').then(setCiclos).catch(() => {}) }, [])
   useEffect(() => {
-    api<NonNullable<typeof dados>>('GET', '/cns/pedidos').then((d) => { setDados(d); if (d.itens.some((i) => i.para_mim)) setSo('mim') }).catch((e) => setErro(mensagemDe(e)))
-  }, [])
+    api<NonNullable<typeof dados>>('GET', '/cns/pedidos' + (cicloId ? '?ciclo_id=' + cicloId : '')).then((d) => { setDados(d); setSo(d.itens.some((i) => i.para_mim) ? 'mim' : 'todos') }).catch((e) => setErro(mensagemDe(e)))
+  }, [cicloId])
   if (erro) return <main className="pagina"><Topo titulo="Pedidos de limpeza" voltar="/limpeza" /><Aviso>{erro}</Aviso></main>
   if (!dados) return <main className="pagina"><Carregando /></main>
   const meus = dados.itens.filter((i) => i.para_mim).length
@@ -732,6 +735,10 @@ export function PedidosLimpeza() {
     <main className="pagina">
       <Topo titulo="Pedidos de limpeza" voltar="/limpeza" />
       {dados.ciclo && <p className="contexto">{dados.ciclo.nome} · {textoPrazo(dados.ciclo)}</p>}
+      {ciclos.length > 1 && (
+        <Selecao rotulo="Ciclo" nome="ciclo-pedidos" valor={cicloId || String(dados.ciclo?.id ?? '')} aoMudar={(v) => v && setCicloId(v)}
+          opcoes={ciclos.map((c) => ({ valor: String(c.id), texto: `${c.nome} — ${c.status_nome}` }))} />
+      )}
       {dados.itens.length > 0 && (
         <div className="pilulas margem-baixo" role="group">
           <button className={so === 'mim' ? 'ativo' : ''} onClick={() => setSo('mim')}>Esperando você<span className="contador">{meus}</span></button>
@@ -779,6 +786,13 @@ export function ConferirPedido({ id }: { id: number }) {
   const [enviando, setEnviando] = useState(false)
   const aplicar = (x: PedidoLimpeza) => { setP(x); setQtd(Object.fromEntries(x.itens.map((i) => [i.produto_id, i.quantidade_aprovada ?? i.quantidade]))) }
   useEffect(() => { api<PedidoLimpeza>('GET', '/cns/pedidos/' + id).then(aplicar).catch((e) => setErro(mensagemDe(e))) }, [id])
+
+  async function excluir() {
+    if (!p || !confirm(`Excluir o pedido de ${p.casa.nome} (${p.ciclo.nome})? Os itens e o histórico do pedido são apagados. Não dá para desfazer.`)) return
+    setErro(''); setOk(''); setEnviando(true)
+    try { await api('DELETE', '/cns/pedidos/' + id); ir('/limpeza/pedidos') }
+    catch (e) { setErro(mensagemDe(e)); window.scrollTo(0, 0) } finally { setEnviando(false) }
+  }
 
   async function acao(nome: string, dados: Record<string, unknown>) {
     setErro(''); setOk(''); setEnviando(true)
@@ -851,6 +865,13 @@ export function ConferirPedido({ id }: { id: number }) {
         )}
         {p.acoes.includes('confirmar_recebimento') && <button className="botao botao-largo margem-cima" disabled={enviando} onClick={() => acao('confirmar_recebimento', {})}>Confirmar que a casa recebeu</button>}
       </section>
+      {p.pode_excluir && (
+        <section className="bloco">
+          <h2>Excluir pedido</h2>
+          <p className="fraco">Apaga este pedido com os itens e o histórico. O estoque que já foi movimentado não muda. {p.ciclo.status === 'aberto' ? 'Com o ciclo aberto, a casa pode fazer um pedido novo.' : ''}</p>
+          <button type="button" className="botao perigo" onClick={excluir} disabled={enviando}><Icone nome="lixo" tamanho={18} />Excluir pedido</button>
+        </section>
+      )}
       <HistoricoPedido pedido={p} />
     </main>
   )

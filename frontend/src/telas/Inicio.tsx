@@ -3,6 +3,7 @@ import { Icone, Topo } from '../ui'
 import { ResumoChamados } from './Chamados'
 import { ResumoOrdensInicio } from './Ordens'
 import { ResumoLimpezaInicio } from './Limpeza'
+import { InstalarApp } from '../instalar'
 
 export function Inicio({ usuario }: { usuario: Usuario }) {
   const primeiroNome = usuario.nome.split(' ')[0]
@@ -13,6 +14,7 @@ export function Inicio({ usuario }: { usuario: Usuario }) {
     <main className="pagina">
       <Topo titulo={`Olá, ${primeiroNome}`} />
       <p className="contexto">{usuario.tenant?.nome}</p>
+      <InstalarApp />
 
       {usuario.permissoes.includes('chamados.ver') && <ResumoChamados usuario={usuario} />}
       {usuario.permissoes.includes('chamados.ver') && <ResumoOrdensInicio />}

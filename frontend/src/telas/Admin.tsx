@@ -189,6 +189,14 @@ function FormUsuario({ id, proprioId, aoMudarProprio }: { id: number | null; pro
     }
   }
 
+  async function excluir() {
+    if (!confirm(`Excluir o usuário ${nome}? Ele perde o acesso e o cadastro é apagado. Não dá para desfazer.`)) return
+    setErro(''); setOk(''); setErros({}); setEnviando(true)
+    try { await api('DELETE', '/usuarios/' + id); ir('/admin/usuarios') }
+    catch (err) { setErro(mensagemDe(err)); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+    finally { setEnviando(false) }
+  }
+
   if (!carregado) return <main className="pagina">{erro ? <Aviso>{erro}</Aviso> : <Carregando />}</main>
 
   const alternarCasa = (casaId: number, funcao: string) => {
@@ -296,6 +304,13 @@ function FormUsuario({ id, proprioId, aoMudarProprio }: { id: number | null; pro
           <p className="fraco">Use quando a pessoa esquecer a senha.</p>
           <Campo rotulo="Nova senha provisória" nome="nova_senha_admin" valor={novaSenha} aoMudar={setNovaSenha} erro={erros.nova_senha_admin} />
           <button className="botao" onClick={redefinir} disabled={!novaSenha}>Definir senha provisória</button>
+        </section>
+      )}
+      {id && id !== proprioId && (
+        <section className="bloco">
+          <h2>Excluir usuário</h2>
+          <p className="fraco">Apaga o cadastro de vez. Só funciona para quem ainda não tem histórico no sistema; para quem já tem, desmarque "Acesso ativo".</p>
+          <button type="button" className="botao perigo" onClick={excluir} disabled={enviando}><Icone nome="lixo" tamanho={18} />Excluir usuário</button>
         </section>
       )}
     </main>
@@ -535,7 +550,7 @@ const ACOES: Record<string, string> = {
   decidir_teto: 'Decidiu o teto', pedir_teto: 'Pediu teto novo', pausar: 'Pausou', retomar: 'Retomou', lancar_gasto: 'Lançou gasto', estornar_gasto: 'Estornou gasto',
 }
 const ENTIDADES: Record<string, string> = {
-  casas_oracao: 'Casa de Oração', grupos: 'Grupo', usuarios: 'Usuário', configuracoes_tenant: 'Regras e alçadas', tenants: 'Organização',
+  casas_oracao: 'Casa de Oração', grupos: 'Grupo', usuarios: 'Usuário', cns_pedidos: 'Pedido de limpeza', configuracoes_tenant: 'Regras e alçadas', tenants: 'Organização',
   casas_ministerio: 'Ministério', chamados: 'Chamado', chamados_categorias: 'Tipo de chamado', obras: 'Obra',
 }
 

@@ -85,6 +85,7 @@ try {
     $rt->add('GET',    '/cns/pedidos',                  [Cn::class, 'listarPedidos']);
     $rt->add('GET',    '/cns/pedidos/{id}',             [Cn::class, 'verPedido']);
     $rt->add('POST',   '/cns/pedidos/{id}/acoes',       [Cn::class, 'acaoPedido']);
+    $rt->add('DELETE', '/cns/pedidos/{id}',             [Cn::class, 'excluirPedido']);
     $rt->add('GET',    '/cns/ciclos',                   [Cn::class, 'listarCiclos']);
     $rt->add('POST',   '/cns/ciclos',                   [Cn::class, 'criarCiclo']);
     $rt->add('PUT',    '/cns/ciclos/{id}',              [Cn::class, 'editarCiclo']);
@@ -118,6 +119,7 @@ try {
     $rt->add('POST', '/usuarios',             [U::class, 'criar']);
     $rt->add('GET',  '/usuarios/{id}',        [U::class, 'ver']);
     $rt->add('PUT',  '/usuarios/{id}',        [U::class, 'editar']);
+    $rt->add('DELETE', '/usuarios/{id}',      [U::class, 'excluir']);
     $rt->add('POST', '/usuarios/{id}/senha',  [U::class, 'redefinirSenha']);
 
     $rt->despachar($req);

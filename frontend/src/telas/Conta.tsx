@@ -1,6 +1,7 @@
 import { api, NOMES_PERFIS, type Usuario } from '../api'
 import { Topo } from '../ui'
 import { TrocarSenha } from './Acesso'
+import { InstalarApp } from '../instalar'
 
 export function Conta({ usuario, aoSair }: { usuario: Usuario; aoSair: () => void }) {
   async function sair() {
@@ -17,6 +18,10 @@ export function Conta({ usuario, aoSair }: { usuario: Usuario; aoSair: () => voi
       <section className="bloco">
         <h2>Trocar senha</h2>
         <TrocarSenha aoConcluir={() => {}} />
+      </section>
+      <section className="bloco">
+        <h2>App no aparelho</h2>
+        <InstalarApp completo />
       </section>
       <button className="botao botao-sair" onClick={sair}>Sair do sistema</button>
     </main>

@@ -104,6 +104,12 @@ final class CnsControlador
         return false;
     }
 
+    /** Excluir pedido (qualquer status, inclusive de ciclos antigos): Coordenação CNS em todas as casas; orientadora nas casas do grupo dela. */
+    private static function podeExcluir(int $casaId): bool
+    {
+        return Acesso::temPerfil('coordenacao_cns') || (Acesso::temPerfil('orientadora_cns') && self::ehOrientadoraDa($casaId));
+    }
+
     private static function ehDaCasa(int $casaId): bool
     {
         static $c = null;
@@ -314,6 +320,7 @@ final class CnsControlador
             'analisado_por' => $nome($p['analisado_por'] ?? null), 'analisado_em' => $p['analisado_em'] ?? null,
             'recebido_por' => $nome($p['recebido_por']), 'recebido_em' => $p['recebido_em'], 'recebimento_obs' => $p['recebimento_obs'],
             'tem_orientadora' => self::temOrientadora((int) $p['casa_id']),
+            'pode_excluir' => self::podeExcluir((int) $p['casa_id']),
             'acoes' => $acoes, 'etapa_analise' => self::etapaAnalise($p, $acoes), 'para_mim' => self::paraMim($p, $ciclo, (int) $p['casa_id'], $acoes),
             'eventos' => array_map(fn($e) => ['id' => (int) $e['id'], 'tipo' => $e['tipo'], 'texto' => $e['texto'], 'usuario' => $e['usuario'], 'criado_em' => $e['criado_em']],
                 Db::all('SELECT e.*, u.nome usuario FROM cns_eventos e LEFT JOIN usuarios u ON u.id = e.usuario_id WHERE e.tenant_id = ? AND e.pedido_id = ? ORDER BY e.id', [$t, $p['id']])),
@@ -537,6 +544,26 @@ final class CnsControlador
             Auditoria::registrar('cns_' . $acao, 'cns_pedidos', $id, ['status' => $p['status']], null);
             return self::pedidoCompleto($t, self::carregarPedido($t, $id), self::ciclo($t, (int) $p['ciclo_id']));
         });
+    }
+
+    /** Apaga o pedido de uma casa, com itens e histórico. Não mexe no estoque já movimentado. */
+    public static function excluirPedido(Requisicao $r, int $id): array
+    {
+        Acesso::exigir('cns.ver');
+        $t = Sessao::tenantId();
+        $antes = Db::transacao(function () use ($t, $id) {
+            $p = self::carregarPedido($t, $id, true);
+            if (!self::podeExcluir((int) $p['casa_id'])) throw HttpErro::proibido();
+            $casa = Db::one('SELECT nome FROM casas_oracao WHERE id = ?', [$p['casa_id']]);
+            $ciclo = Db::one('SELECT nome FROM cns_ciclos WHERE id = ?', [$p['ciclo_id']]);
+            $itens = Db::all('SELECT pr.nome, i.quantidade, i.quantidade_aprovada FROM cns_pedidos_itens i JOIN cns_produtos pr ON pr.id = i.produto_id WHERE i.pedido_id = ?', [$id]);
+            Db::run('DELETE FROM cns_eventos WHERE tenant_id = ? AND pedido_id = ?', [$t, $id]);
+            Db::run('DELETE FROM cns_pedidos_itens WHERE tenant_id = ? AND pedido_id = ?', [$t, $id]);
+            Db::run('DELETE FROM cns_pedidos WHERE tenant_id = ? AND id = ?', [$t, $id]);
+            return ['casa' => $casa['nome'] ?? null, 'ciclo' => $ciclo['nome'] ?? null, 'status' => $p['status'], 'itens' => $itens];
+        });
+        Auditoria::registrar('excluir', 'cns_pedidos', $id, $antes, null);
+        return ['ok' => true];
     }
 
     /** Lista de pedidos de um ciclo (análises, acompanhamento). */

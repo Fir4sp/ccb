@@ -274,7 +274,7 @@ export type PedidoLimpeza = {
   enviado_por: string | null; enviado_em: string | null; conferido_por: string | null; conferido_em: string | null
   analisado_por: string | null; analisado_em: string | null
   recebido_por: string | null; recebido_em: string | null; recebimento_obs: string | null
-  acoes: string[]; etapa_analise: 'primeira' | 'final' | null; tem_orientadora: boolean; para_mim: boolean; estoque_casa_id: number | null
+  acoes: string[]; etapa_analise: 'primeira' | 'final' | null; tem_orientadora: boolean; para_mim: boolean; estoque_casa_id: number | null; pode_excluir?: boolean
   eventos: { id: number; tipo: string; texto: string | null; usuario: string | null; criado_em: string }[]
 }
 
