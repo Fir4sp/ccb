@@ -4,6 +4,7 @@ backend/arquivos/*
 !backend/arquivos/.htaccess
 *.zip
 *.sql.gz
+# (os .sql de implantacao/sql são só estrutura, sem dados)
 error_log
 *.log
 node_modules/

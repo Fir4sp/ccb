@@ -8,6 +8,7 @@ import { ChamadoDetalhe, ListaChamados, NovoChamado } from './telas/Chamados'
 import { ListaOrdens, ListaPendencias, ModelosEtapas, OrdemDetalhe } from './telas/Ordens'
 import { CatalogoLimpeza, CiclosLimpeza, ConferirPedido, ConsolidadoLimpeza, LojaLimpeza, PainelLimpeza, PedidosLimpeza } from './telas/Limpeza'
 import { EstoqueDetalhe, ListaEstoques } from './telas/Estoque'
+import { ChecklistVisitas, ListaVisitas, VisitaDetalhe } from './telas/Visitas'
 import { Admin } from './telas/Admin'
 import { Conta } from './telas/Conta'
 
@@ -84,9 +85,12 @@ export default function App() {
     if (partes[2] === 'loja' && id) tela = <LojaLimpeza key={rotaCompleta} casaId={id} />
     else if (partes[2] === 'pedidos' && id) tela = <ConferirPedido key={rotaCompleta} id={id} />
     else if (partes[2] === 'pedidos') tela = <PedidosLimpeza />
-    else if (partes[2] === 'consolidado' && id) tela = <ConsolidadoLimpeza key={rotaCompleta} id={id} />
+    else if (partes[2] === 'consolidado' && id) tela = <ConsolidadoLimpeza key={rotaCompleta} id={id} aba={partes[4]} />
     else if (partes[2] === 'catalogo' && usuario.permissoes.includes('cns.gerir')) tela = <CatalogoLimpeza />
     else if (partes[2] === 'ciclos') tela = <CiclosLimpeza />
+    else if (partes[2] === 'visitas' && partes[3] === 'checklist' && usuario.permissoes.includes('cns.gerir')) tela = <ChecklistVisitas />
+    else if (partes[2] === 'visitas' && id && usuario.permissoes.includes('cns.visitas')) tela = <VisitaDetalhe key={rotaCompleta} id={id} />
+    else if (partes[2] === 'visitas' && usuario.permissoes.includes('cns.visitas')) tela = <ListaVisitas usuario={usuario} />
     else if (partes[2] === 'estoque' && id) tela = <EstoqueDetalhe key={rotaCompleta} id={id} />
     else if (partes[2] === 'estoque') tela = <ListaEstoques />
     else tela = <PainelLimpeza key={rotaCompleta} usuario={usuario} />

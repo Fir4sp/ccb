@@ -119,6 +119,14 @@ export function PainelLimpeza({ usuario }: { usuario: Usuario }) {
         </a>
       )}
 
+      {pode('cns.visitas') && (
+        <a className="cartao cartao-link margem-cima" href="#/limpeza/visitas">
+          <Icone nome="lista" />
+          <span><strong>Visitas às casas</strong><small>Relatório de visita: checklist e fotos, para imprimir ou gerar PDF</small></span>
+          <Icone nome="seta" />
+        </a>
+      )}
+
       {usuario.perfis.includes('administrador') && !pode('cns.gerir') && !pode('cns.pedir') && (
         <Aviso tipo="info">Como administrador você só acompanha a limpeza. Para abrir ciclos e cuidar do catálogo, dê a você mesmo o perfil Coordenação CNS em <a href={`#/admin/usuarios/${usuario.id}`}>Admin › Usuários</a>.</Aviso>
       )}
@@ -292,8 +300,8 @@ function GestaoCiclo({ resumo, usuario, aoMudar }: { resumo: ResumoLimpeza; usua
           {c.status === 'fechado' && !c.liberado_compras_em && (
             gerir ? (
               <>
-                <p className="dica-passo"><Icone nome="documento" tamanho={16} />Confira quanto comprar de cada produto (já desconta o que tem no DML Central) e libere a lista para Compras.</p>
-                <div className="botoes-acao"><a className="botao botao-cheio" href={`#/limpeza/consolidado/${c.id}`}><Icone nome="documento" />Consolidar e liberar a compra</a></div>
+                <p className="dica-passo"><Icone nome="documento" tamanho={16} />Todos os pedidos estão fechados. Toque em Consolidar para ver a lista de compras, o gasto por casa e a separação — e liberar a lista para Compras.</p>
+                <div className="botoes-acao"><a className="botao botao-cheio" href={`#/limpeza/consolidado/${c.id}`}><Icone nome="documento" />Consolidar</a></div>
               </>
             ) : <p className="fraco">Esperando a Coordenação CNS consolidar com o DML Central e liberar a lista de compra.</p>
           )}
@@ -301,7 +309,7 @@ function GestaoCiclo({ resumo, usuario, aoMudar }: { resumo: ResumoLimpeza; usua
             <>
               <p className="fraco">Lista liberada pela Coordenação em {dataCurta(c.liberado_compras_em)}.</p>
               <div className="botoes-acao">
-                <a className="botao" href={`#/limpeza/consolidado/${c.id}`}><Icone nome="documento" />Ver lista por fornecedor</a>
+                <a className="botao" href={`#/limpeza/consolidado/${c.id}/compra`}><Icone nome="documento" />Ver lista por fornecedor</a>
                 <button className="botao botao-cheio" onClick={() => setAberto('comprado')}>Registrar compra</button>
               </div>
             </>
@@ -340,7 +348,7 @@ function GestaoCiclo({ resumo, usuario, aoMudar }: { resumo: ResumoLimpeza; usua
                 </div>
               ) : (
                 <div className="botoes-acao">
-                  <a className="botao" href={`#/limpeza/consolidado/${c.id}`}><Icone nome="imprimir" />Separação por casa</a>
+                  <a className="botao" href={`#/limpeza/consolidado/${c.id}/separacao`}><Icone nome="imprimir" />Separação por casa</a>
                   <button className="botao botao-cheio" disabled={enviando} onClick={() => entregar(false)}>Marcar como entregue às casas</button>
                 </div>
               )}
@@ -893,11 +901,19 @@ type Consolidado = {
 
 const SEM_FORNECEDOR = 'Sem fornecedor'
 
-export function ConsolidadoLimpeza({ id }: { id: number }) {
+type AbaConsolidado = 'compra' | 'gasto' | 'separacao'
+const OPCOES_CONSOLIDAR: { aba: AbaConsolidado; titulo: string; texto: string; icone: string }[] = [
+  { aba: 'compra', titulo: 'Lista de compras', texto: 'O total de cada produto para comprar, separado por fornecedor.', icone: 'carrinho' },
+  { aba: 'gasto', titulo: 'Gasto por casa', texto: 'Quanto cada Casa de Oração pediu, com o total de cada grupo.', icone: 'casas' },
+  { aba: 'separacao', titulo: 'Separação', texto: 'Uma página por Casa de Oração com os pedidos dela, para imprimir e colocar no pacote.', icone: 'imprimir' },
+]
+
+export function ConsolidadoLimpeza({ id, aba: abaInicial }: { id: number; aba?: string }) {
   const [c, setC] = useState<Consolidado | null>(null)
   const [erro, setErro] = useState('')
   const [ok, setOk] = useState('')
-  const [aba, setAba] = useState<'compra' | 'gasto' | 'separacao'>('compra')
+  const [aba, setAbaEstado] = useState<AbaConsolidado | null>(OPCOES_CONSOLIDAR.some((o) => o.aba === abaInicial) ? abaInicial as AbaConsolidado : null)
+  const setAba = (a: AbaConsolidado | null) => { setAbaEstado(a); history.replaceState(null, '', `#/limpeza/consolidado/${id}${a ? '/' + a : ''}`); window.scrollTo(0, 0) }
   const [qtd, setQtd] = useState<Record<number, string>>({})
   const [enviando, setEnviando] = useState(false)
   const [confirmar, setConfirmar] = useState(false)
@@ -951,25 +967,44 @@ export function ConsolidadoLimpeza({ id }: { id: number }) {
   const totalCompra = visiveis.reduce((a, p) => a + (p.preco_ref ?? 0) * comprarDe(p), 0)
   const semPreco = visiveis.filter((p) => comprarDe(p) > 0 && p.preco_ref === null).length
   const produtosPedidos = c.produtos.filter((p) => p.total > 0)
+  const casasSeparacao = c.grupos.flatMap((g) => g.casas.map((casa) => ({ ...casa, grupo: g.grupo })))
+  const datasCiclo = `Ciclo ${c.ciclo.nome}` + (c.ciclo.fechado_em ? ` · fechado em ${dataDia(c.ciclo.fechado_em)}` : ` · prazo ${dataDia(c.ciclo.prazo)}`)
 
   return (
-    <main className="pagina pagina-larga pagina-consolidado">
-      <Topo titulo={`Consolidação · ${c.ciclo.nome}`} voltar="/limpeza" />
+    <main className={'pagina pagina-larga pagina-consolidado' + (aba === 'separacao' ? ' imprimindo-separacao' : '')}>
+      <Topo titulo={`Consolidar · ${c.ciclo.nome}`} voltar="/limpeza" />
       <p className="contexto">{c.casas} {c.casas === 1 ? 'casa' : 'casas'} com pedido aprovado · {reais(c.valor_pedidos)} em pedidos · {c.ciclo.status_nome}</p>
       {ok && <Aviso tipo="ok">{ok}</Aviso>}
       {erro && <Aviso>{erro}</Aviso>}
       {c.ciclo.status === 'aberto' && <Aviso tipo="info">O ciclo ainda está aberto: estes números ainda podem mudar. A lista de compra é montada depois de fechar.</Aviso>}
       {editavel && <Aviso tipo="info">Confira a coluna <strong>Comprar</strong>. A sugestão é o que as casas pediram, mais o mínimo do DML Central, menos o que já tem lá. Ajuste o que precisar e libere para Compras.</Aviso>}
       {c.ciclo.liberado_compras_em && <Aviso tipo="ok">Lista liberada para Compras em {dataCurta(c.ciclo.liberado_compras_em)}.</Aviso>}
-      <div className="pilulas nao-imprimir" role="group">
-        <button className={aba === 'compra' ? 'ativo' : ''} onClick={() => setAba('compra')}>Lista de compra</button>
-        <button className={aba === 'gasto' ? 'ativo' : ''} onClick={() => setAba('gasto')}>Gasto por casa</button>
-        <button className={aba === 'separacao' ? 'ativo' : ''} onClick={() => setAba('separacao')}>Separação</button>
-      </div>
-      <div className="botoes-acao nao-imprimir margem-cima">
-        <button className="botao" onClick={() => window.print()}><Icone nome="imprimir" />Imprimir</button>
-        <button className="botao" onClick={baixarPlanilha}><Icone nome="baixar" />Baixar planilha (Excel)</button>
-      </div>
+      {aba === null && (
+        <section className="opcoes-consolidar nao-imprimir" aria-label="O que você quer ver">
+          {OPCOES_CONSOLIDAR.map((o) => (
+            <button key={o.aba} type="button" className="opcao-consolidar" onClick={() => setAba(o.aba)}>
+              <Icone nome={o.icone} tamanho={28} />
+              <span><strong>{o.titulo}</strong><small>{o.texto}</small></span>
+              <Icone nome="seta" />
+            </button>
+          ))}
+          <button type="button" className="botao margem-cima" onClick={baixarPlanilha}><Icone nome="baixar" />Baixar tudo em planilha (Excel)</button>
+        </section>
+      )}
+      {aba !== null && (
+        <>
+          <div className="pilulas nao-imprimir" role="group">
+            {OPCOES_CONSOLIDAR.map((o) => <button key={o.aba} className={aba === o.aba ? 'ativo' : ''} onClick={() => setAba(o.aba)}>{o.titulo}</button>)}
+          </div>
+          <div className="botoes-acao nao-imprimir margem-cima">
+            {aba === 'separacao'
+              ? <button className="botao botao-cheio" onClick={() => window.print()} disabled={casasSeparacao.length === 0}><Icone nome="imprimir" />Gerar PDF da separação</button>
+              : <button className="botao" onClick={() => window.print()}><Icone nome="imprimir" />Imprimir</button>}
+            <button className="botao" onClick={baixarPlanilha}><Icone nome="baixar" />Baixar planilha (Excel)</button>
+          </div>
+          {aba === 'separacao' && casasSeparacao.length > 0 && <p className="fraco nao-imprimir">Sai uma página por Casa de Oração ({casasSeparacao.length} {casasSeparacao.length === 1 ? 'página' : 'páginas'}). Na janela que abrir, escolha <b>Salvar como PDF</b> ou a impressora.</p>}
+        </>
+      )}
 
       {aba === 'compra' && (
         <>
@@ -1058,26 +1093,33 @@ export function ConsolidadoLimpeza({ id }: { id: number }) {
         </>
       )}
 
-      {aba === 'separacao' && c.grupos.map((g) => (
-        <section className="cartao quebra-grupo" key={g.grupo}>
-          <h2>{g.grupo} <small>· {c.ciclo.nome}</small></h2>
-          <div className="tabela-rolagem">
-            <table className="tabela tabela-separacao">
-              <thead><tr><th>Produto</th>{g.casas.map((casa) => <th key={casa.casa_id} className="num">{casa.casa}</th>)}<th className="num">Total</th></tr></thead>
+      {aba === 'separacao' && casasSeparacao.length === 0 && <Vazio>Nenhum pedido aprovado neste ciclo.</Vazio>}
+      {aba === 'separacao' && casasSeparacao.map((casa) => {
+        const itens = produtosPedidos.filter((p) => casa.itens[p.produto_id])
+        return (
+          <section className="cartao etiqueta-casa" key={casa.casa_id}>
+            <header className="etiqueta-cabeca">
+              <h2>Casa de oração {casa.casa}</h2>
+              <p>{casa.grupo}{casa.codigo ? ` · ${casa.codigo}` : ''}</p>
+              <p className="etiqueta-ciclo">{datasCiclo}</p>
+            </header>
+            <table className="tabela tabela-etiqueta">
+              <thead><tr><th className="col-check" aria-label="Separado"></th><th>Produto</th><th className="num">Quantidade</th></tr></thead>
               <tbody>
-                {produtosPedidos.filter((p) => g.casas.some((casa) => casa.itens[p.produto_id])).map((p) => (
+                {itens.map((p) => (
                   <tr key={p.produto_id}>
-                    <td><strong>{p.nome}</strong><small>{p.embalagem}</small></td>
-                    {g.casas.map((casa) => <td key={casa.casa_id} className="num">{casa.itens[p.produto_id] ?? ''}</td>)}
-                    <td className="num"><b>{g.casas.reduce((s, casa) => s + (casa.itens[p.produto_id] ?? 0), 0)}</b></td>
+                    <td className="col-check"><span className="caixa-check" aria-hidden="true"></span></td>
+                    <td><strong>{p.nome}</strong>{p.embalagem && <small>{p.embalagem}</small>}</td>
+                    <td className="num"><b>{casa.itens[p.produto_id]}</b> <small>{p.unidade}</small></td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot><tr><td></td><td colSpan={2}>{itens.length} {itens.length === 1 ? 'produto' : 'produtos'}</td></tr></tfoot>
             </table>
-          </div>
-          <p className="fraco so-imprimir">Conferido por: ____________________ Data: ___/___/______</p>
-        </section>
-      ))}
+            <p className="etiqueta-rodape">Separado por: ____________________ &nbsp; Conferido por: ____________________</p>
+          </section>
+        )
+      })}
     </main>
   )
 }

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 use Ccb\{Config, HttpErro, Requisicao, Resposta, Roteador, Sessao};
 use Ccb\Controladores\{AuthControlador as A, OrganizacaoControlador as O, UsuariosControlador as U};
-use Ccb\Controladores\{AreasControlador as Ar, AnexosControlador as Ax, CasaPaginaControlador as P, ChamadosControlador as Ch, OrdensControlador as Os, CnsControlador as Cn, EstoqueControlador as Es};
+use Ccb\Controladores\{AreasControlador as Ar, AnexosControlador as Ax, CasaPaginaControlador as P, ChamadosControlador as Ch, OrdensControlador as Os, CnsControlador as Cn, EstoqueControlador as Es, VisitasControlador as Vi};
 
 require __DIR__ . '/../src/bootstrap.php';
 
@@ -94,6 +94,20 @@ try {
     $rt->add('POST',   '/cns/ciclos/{id}/receber',      [Cn::class, 'receberCompra']);
     $rt->add('PUT',    '/cns/ciclos/{id}/compra',       [Cn::class, 'salvarCompra']);
     $rt->add('GET',    '/cns/agenda',                   [Cn::class, 'verAgenda']);
+    // v1.10.0 — relatório de visita
+    $rt->add('GET',    '/cns/checklist',                [Vi::class, 'checklist']);
+    $rt->add('POST',   '/cns/checklist',                [Vi::class, 'criarItem']);
+    $rt->add('PUT',    '/cns/checklist/ordem',          [Vi::class, 'ordenarItens']);
+    $rt->add('PUT',    '/cns/checklist/{id}',           [Vi::class, 'editarItem']);
+    $rt->add('GET',    '/cns/visitas',                  [Vi::class, 'listar']);
+    $rt->add('POST',   '/cns/visitas',                  [Vi::class, 'criar']);
+    $rt->add('GET',    '/cns/visitas/{id}',             [Vi::class, 'ver']);
+    $rt->add('PUT',    '/cns/visitas/{id}',             [Vi::class, 'salvar']);
+    $rt->add('DELETE', '/cns/visitas/{id}',             [Vi::class, 'excluir']);
+    $rt->add('POST',   '/cns/visitas/{id}/acoes',       [Vi::class, 'acao']);
+    $rt->add('POST',   '/cns/visitas/{id}/fotos',       [Vi::class, 'enviarFoto']);
+    $rt->add('PUT',    '/cns/visitas/{id}/fotos/{foto}', [Vi::class, 'editarFoto']);
+    $rt->add('DELETE', '/cns/visitas/{id}/fotos/{foto}', [Vi::class, 'excluirFoto']);
     $rt->add('PUT',    '/cns/agenda',                   [Cn::class, 'salvarAgenda']);
     // Estoques (Fase 6)
     $rt->add('GET',    '/estoque/locais',               [Es::class, 'locais']);

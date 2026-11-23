@@ -55,6 +55,8 @@ final class Catalogo
         'cns.conferir'         => ['cns', 'Conferir e aprovar pedidos de limpeza'],
         'cns.gerir'            => ['cns', 'Catálogo, ciclos de pedido, análise final, consolidação e distribuição'],
         'cns.compras'          => ['cns', 'Ver o consolidado com preços e registrar a compra'],
+        // v1.10.0 — Relatório de visita
+        'cns.visitas'          => ['cns', 'Fazer o relatório de visita (checklist e fotos) nas casas do próprio escopo'],
     ];
 
     /** perfil => permissões. Todo perfil enxerga casas no seu escopo. */
@@ -85,8 +87,8 @@ final class Catalogo
         $cns = [
             'administrador'   => ['cns.ver'],
             'casa_oracao'     => ['cns.ver', 'cns.pedir'],
-            'orientadora_cns' => ['cns.ver', 'cns.pedir', 'cns.conferir'],
-            'coordenacao_cns' => ['cns.ver', 'cns.pedir', 'cns.conferir', 'cns.gerir', 'cns.compras'],
+            'orientadora_cns' => ['cns.ver', 'cns.pedir', 'cns.conferir', 'cns.visitas'],
+            'coordenacao_cns' => ['cns.ver', 'cns.pedir', 'cns.conferir', 'cns.gerir', 'cns.compras', 'cns.visitas'],
             'compras'         => ['cns.ver', 'cns.compras'],
         ][$perfil] ?? [];
         $base = array_merge($base, $chamados, $obras, $cns);

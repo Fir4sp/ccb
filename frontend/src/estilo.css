@@ -1575,3 +1575,73 @@ button.item { width: 100%; border: 0; background: none; text-align: left; font: 
 .botao-instalar { border-color: var(--primaria); width: 100%; color: var(--primaria); background: var(--superficie); gap: 8px; margin-top: 14px; font-weight: 600; }
 .botao-instalar svg { flex: none; }
 .dica-instalar { background: var(--primaria-clara, #e8eefb); color: var(--tinta-2, #33404a); border-radius: 10px; margin: 14px 0 0; padding: 10px 12px; font-size: .9rem; line-height: 1.45; }
+
+/* v1.10.0 — Consolidar (3 opções) e separação por casa (uma página por casa) */
+.opcoes-consolidar { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.opcao-consolidar { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; text-align: left; background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); box-shadow: var(--sombra); color: inherit; font: inherit; cursor: pointer; }
+.opcao-consolidar > svg:first-child { color: var(--primaria); flex: none; }
+.opcao-consolidar > svg:last-child { margin-left: auto; flex: none; opacity: .5; }
+.opcao-consolidar span { display: flex; flex-direction: column; gap: 2px; }
+.opcao-consolidar small { color: var(--tinta-2, #55606a); font-size: .88rem; }
+.opcao-consolidar:hover { border-color: var(--primaria); }
+.etiqueta-casa { margin-top: 14px; }
+.etiqueta-cabeca h2 { font-size: 1.35rem; margin: 0 0 4px; }
+.etiqueta-cabeca p { margin: 0; color: var(--tinta-2, #55606a); }
+.etiqueta-ciclo { font-weight: 600; margin-top: 4px !important; }
+.tabela-etiqueta { width: 100%; margin-top: 12px; }
+.tabela-etiqueta td small { display: block; }
+.tabela-etiqueta .num small { display: inline; color: var(--tinta-2, #55606a); }
+.tabela-etiqueta tfoot td { border-top: 2px solid var(--linha); font-weight: 600; }
+.col-check { width: 34px; }
+.caixa-check { display: inline-block; width: 18px; height: 18px; border: 2px solid #777; border-radius: 3px; }
+.etiqueta-rodape { margin: 16px 0 0; font-size: .9rem; color: var(--tinta-2, #55606a); }
+@media print {
+  .imprimindo-separacao .topo, .imprimindo-separacao > .contexto, .imprimindo-separacao .vazio { display: none !important; }
+  .etiqueta-casa { break-after: page; break-inside: avoid; border: 0 !important; margin: 0; padding: 0; }
+  .etiqueta-casa:last-of-type { break-after: auto; }
+  .etiqueta-cabeca h2 { font-size: 22pt; }
+  .etiqueta-ciclo { font-size: 12pt; }
+  .tabela-etiqueta { font-size: 12pt; }
+}
+
+/* v1.10.0 — relatório de visita */
+.lista-checklist .inativo { opacity: .6; }
+.item-checklist { display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
+.item-checklist > div:first-child { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.acoes-item { display: flex; gap: 6px; align-items: center; }
+.lista-checklist .painel-form { padding: 12px 16px; }
+.marcar { display: flex; align-items: center; gap: 8px; }
+.visita-cabeca h2 { font-size: 1.3rem; margin: 4px 0; }
+.visita-cabeca p { margin: 4px 0; }
+.visita-secao h2 { font-size: 1.05rem; margin: 0 0 8px; }
+.itens-visita { list-style: none; margin: 0; padding: 0; }
+.item-visita { padding: 10px 0; border-top: 1px solid var(--linha); }
+.item-visita:first-child { border-top: 0; }
+.item-visita-texto { margin: 0 0 8px; font-weight: 600; display: flex; gap: 8px; }
+.marca-resposta { width: 1.2em; flex: none; text-align: center; }
+.resp-ok .marca-resposta { color: var(--ok); }
+.resp-ajustar .marca-resposta { color: var(--erro); }
+.opcoes-resposta { display: flex; gap: 6px; flex-wrap: wrap; }
+.opcoes-resposta .resp { min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--linha); background: var(--superficie); font-weight: 600; font-size: .88rem; cursor: pointer; }
+.opcoes-resposta .resp.ok.ativo { background: var(--ok); border-color: var(--ok); color: #fff; }
+.opcoes-resposta .resp.ajustar.ativo { background: var(--erro); border-color: var(--erro); color: #fff; }
+.opcoes-resposta .resp.na.ativo { background: var(--tinta-2); border-color: var(--tinta-2); color: #fff; }
+.resp-texto { margin: 0; color: var(--tinta-2); }
+.obs-item { margin: 6px 0 0; padding: 6px 10px; background: var(--fundo); border-radius: 8px; font-size: .92rem; }
+.fotos-visita { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.fotos-visita img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; display: block; background: var(--fundo); }
+.fotos-visita p { margin: 4px 0 0; font-size: .88rem; }
+.assinatura-visita { margin-top: 28px; }
+@media print {
+  .pagina-visita .topo { display: none !important; }
+  .pagina-visita .cartao { border: 0 !important; padding: 0; margin: 0 0 10px; }
+  .visita-secao, .item-visita { break-inside: avoid; }
+  .fotos-visita { grid-template-columns: 1fr 1fr; }
+  .fotos-visita li { break-inside: avoid; }
+  .fotos-visita img { aspect-ratio: auto; max-height: 85mm; object-fit: contain; }
+}
+
+@media print {
+  html, body, .conteudo, .pagina, .pagina-larga { background: #fff !important; }
+  .pagina-visita .cartao, .etiqueta-casa { box-shadow: none !important; }
+}

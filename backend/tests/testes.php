@@ -273,6 +273,7 @@ require __DIR__ . '/testes_fase6.php';
 require __DIR__ . '/testes_fase7.php';
 require __DIR__ . '/testes_fase8.php';
 require __DIR__ . '/testes_fase9.php';
+require __DIR__ . '/testes_fase10.php';
 
 echo "\n" . ($falhas === 0 ? "TODOS OS $total TESTES PASSARAM" : "$falhas DE $total TESTES FALHARAM") . "\n";
 exit($falhas === 0 ? 0 : 1);

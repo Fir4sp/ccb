@@ -34,6 +34,7 @@ final class AnexosControlador
                 Ordens::carregar((int) $g['os_id']);
             }),
             'cns_produto' => Acesso::tem('cns.ver'),
+            'cns_visita'  => self::tenta(fn() => VisitasControlador::carregar($t, (int) $a['dono_id'])),
             default   => false,
         };
         if (!$pode) throw HttpErro::naoEncontrado('Arquivo');

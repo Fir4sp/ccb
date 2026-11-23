@@ -1,0 +1,34 @@
+Sistema CCB v1.10.0 — atualização (vem da v1.9.1, a que está no ar)
+Gerado em 23/11/2026 pelo Dev Xclim. Testes: 458 passaram + teste no navegador.
+
+O QUE MUDA
+- Limpeza › Consolidar: o botão abre 3 opções — Lista de compras, Gasto por casa e Separação.
+- Separação: uma página por Casa de Oração ("Casa de oração X", ciclo e data, produto e quantidade,
+  quadradinho para marcar e "Separado por / Conferido por"). Botão "Gerar PDF da separação".
+- Relatório de visita (Limpeza › Visitas às casas): a Coordenação CNS monta o checklist do jeito que quiser;
+  a orientadora marca cada item (OK / Precisa ajustar / Não se aplica), escreve observações, tira as fotos
+  e gera o PDF. Só a Orientadora CNS (casas do grupo dela) e a Coordenação CNS veem as visitas.
+
+ARQUIVOS
+- v1.10.0_01_visitas.sql ......... banco (phpMyAdmin). Roda UMA vez só.
+- ccb_v1.10.0_atualizacao.zip ..... por cima da pasta do subdomínio ccb (só os arquivos que mudaram)
+
+PASSO A PASSO (uns 10 minutos)
+1. BACKUP: phpMyAdmin › banco u192849708_ccb › Exportar › Executar. Guarde o arquivo.
+   Baixe também uma cópia de: index.html, sw.js, nucleo/public/index.php, nucleo/src/Catalogo.php,
+   nucleo/src/Controladores/AnexosControlador.php (os que serão trocados).
+2. BANCO: phpMyAdmin › u192849708_ccb › Importar › v1.10.0_01_visitas.sql › Importar. Tem que terminar verde.
+   Se aparecer "Table 'cns_checklist_itens' already exists", ele já tinha sido aplicado: siga em frente.
+3. ARQUIVOS: Gerenciador de arquivos do xclim.com.br › pasta do subdomínio ccb › envie o zip ccb_v1.10.0_atualizacao.zip
+   › Extrair ali mesmo, substituindo. Os arquivos caem DIRETO na pasta do subdomínio
+   (index.html ao lado de api/ e nucleo/). Apague o zip depois.
+   NÃO mexer: .htaccess da raiz, nucleo/config/config.local.php, nucleo/arquivos/.
+4. ABRIR A VERSÃO NOVA: no computador Ctrl+Shift+R; no celular feche o app e abra de novo, duas vezes.
+5. TESTE: https://ccb.xclim.com.br/api/saude → {"ok":true}. Entre como Coordenação CNS:
+   Limpeza › Visitas às casas › Checklist › "Começar com a sugestão" (ou cadastre os itens).
+   Limpeza › Consolidação › escolha Separação › Gerar PDF.
+
+SE DER ERRADO
+- "Erro interno" ao abrir Visitas: o passo 2 (SQL) não foi feito.
+- Tela velha: repita o passo 4.
+- Para voltar: suba de novo os arquivos guardados no passo 1 (o banco novo não atrapalha a versão antiga).
