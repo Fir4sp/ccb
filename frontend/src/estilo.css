@@ -1576,14 +1576,7 @@ button.item { width: 100%; border: 0; background: none; text-align: left; font: 
 .botao-instalar svg { flex: none; }
 .dica-instalar { background: var(--primaria-clara, #e8eefb); color: var(--tinta-2, #33404a); border-radius: 10px; margin: 14px 0 0; padding: 10px 12px; font-size: .9rem; line-height: 1.45; }
 
-/* v1.10.0 — Consolidar (3 opções) e separação por casa (uma página por casa) */
-.opcoes-consolidar { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
-.opcao-consolidar { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; text-align: left; background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); box-shadow: var(--sombra); color: inherit; font: inherit; cursor: pointer; }
-.opcao-consolidar > svg:first-child { color: var(--primaria); flex: none; }
-.opcao-consolidar > svg:last-child { margin-left: auto; flex: none; opacity: .5; }
-.opcao-consolidar span { display: flex; flex-direction: column; gap: 2px; }
-.opcao-consolidar small { color: var(--tinta-2, #55606a); font-size: .88rem; }
-.opcao-consolidar:hover { border-color: var(--primaria); }
+/* v1.10.0 — separação por casa (uma página por casa) */
 .etiqueta-casa { margin-top: 14px; }
 .etiqueta-cabeca h2 { font-size: 1.35rem; margin: 0 0 4px; }
 .etiqueta-cabeca p { margin: 0; color: var(--tinta-2, #55606a); }

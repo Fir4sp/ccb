@@ -22,4 +22,4 @@ PID=$!
 trap 'kill $PID 2>/dev/null' EXIT
 sleep 1
 
-CCB_URL="http://127.0.0.1:$PORTA/api" php tests/testes.php
+CCB_URL="http://127.0.0.1:$PORTA/api" php -d date.timezone=America/Sao_Paulo tests/testes.php

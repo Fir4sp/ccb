@@ -300,8 +300,8 @@ function GestaoCiclo({ resumo, usuario, aoMudar }: { resumo: ResumoLimpeza; usua
           {c.status === 'fechado' && !c.liberado_compras_em && (
             gerir ? (
               <>
-                <p className="dica-passo"><Icone nome="documento" tamanho={16} />Todos os pedidos estão fechados. Toque em Consolidar para ver a lista de compras, o gasto por casa e a separação — e liberar a lista para Compras.</p>
-                <div className="botoes-acao"><a className="botao botao-cheio" href={`#/limpeza/consolidado/${c.id}`}><Icone nome="documento" />Consolidar</a></div>
+                <p className="dica-passo"><Icone nome="documento" tamanho={16} />Confira quanto comprar de cada produto (já desconta o que tem no DML Central) e libere a lista para Compras.</p>
+                <div className="botoes-acao"><a className="botao botao-cheio" href={`#/limpeza/consolidado/${c.id}`}><Icone nome="documento" />Consolidar e liberar a compra</a></div>
               </>
             ) : <p className="fraco">Esperando a Coordenação CNS consolidar com o DML Central e liberar a lista de compra.</p>
           )}
@@ -902,18 +902,18 @@ type Consolidado = {
 const SEM_FORNECEDOR = 'Sem fornecedor'
 
 type AbaConsolidado = 'compra' | 'gasto' | 'separacao'
-const OPCOES_CONSOLIDAR: { aba: AbaConsolidado; titulo: string; texto: string; icone: string }[] = [
-  { aba: 'compra', titulo: 'Lista de compras', texto: 'O total de cada produto para comprar, separado por fornecedor.', icone: 'carrinho' },
-  { aba: 'gasto', titulo: 'Gasto por casa', texto: 'Quanto cada Casa de Oração pediu, com o total de cada grupo.', icone: 'casas' },
-  { aba: 'separacao', titulo: 'Separação', texto: 'Uma página por Casa de Oração com os pedidos dela, para imprimir e colocar no pacote.', icone: 'imprimir' },
+const ABAS: { aba: AbaConsolidado; titulo: string }[] = [
+  { aba: 'compra', titulo: 'Lista de compra' },
+  { aba: 'gasto', titulo: 'Gasto por casa' },
+  { aba: 'separacao', titulo: 'Separação' },
 ]
 
 export function ConsolidadoLimpeza({ id, aba: abaInicial }: { id: number; aba?: string }) {
   const [c, setC] = useState<Consolidado | null>(null)
   const [erro, setErro] = useState('')
   const [ok, setOk] = useState('')
-  const [aba, setAbaEstado] = useState<AbaConsolidado | null>(OPCOES_CONSOLIDAR.some((o) => o.aba === abaInicial) ? abaInicial as AbaConsolidado : null)
-  const setAba = (a: AbaConsolidado | null) => { setAbaEstado(a); history.replaceState(null, '', `#/limpeza/consolidado/${id}${a ? '/' + a : ''}`); window.scrollTo(0, 0) }
+  const [aba, setAbaEstado] = useState<AbaConsolidado>(ABAS.some((o) => o.aba === abaInicial) ? abaInicial as AbaConsolidado : 'compra')
+  const setAba = (a: AbaConsolidado) => { setAbaEstado(a); history.replaceState(null, '', `#/limpeza/consolidado/${id}/${a}`) }
   const [qtd, setQtd] = useState<Record<number, string>>({})
   const [enviando, setEnviando] = useState(false)
   const [confirmar, setConfirmar] = useState(false)
@@ -972,39 +972,23 @@ export function ConsolidadoLimpeza({ id, aba: abaInicial }: { id: number; aba?: 
 
   return (
     <main className={'pagina pagina-larga pagina-consolidado' + (aba === 'separacao' ? ' imprimindo-separacao' : '')}>
-      <Topo titulo={`Consolidar · ${c.ciclo.nome}`} voltar="/limpeza" />
+      <Topo titulo={`Consolidação · ${c.ciclo.nome}`} voltar="/limpeza" />
       <p className="contexto">{c.casas} {c.casas === 1 ? 'casa' : 'casas'} com pedido aprovado · {reais(c.valor_pedidos)} em pedidos · {c.ciclo.status_nome}</p>
       {ok && <Aviso tipo="ok">{ok}</Aviso>}
       {erro && <Aviso>{erro}</Aviso>}
       {c.ciclo.status === 'aberto' && <Aviso tipo="info">O ciclo ainda está aberto: estes números ainda podem mudar. A lista de compra é montada depois de fechar.</Aviso>}
       {editavel && <Aviso tipo="info">Confira a coluna <strong>Comprar</strong>. A sugestão é o que as casas pediram, mais o mínimo do DML Central, menos o que já tem lá. Ajuste o que precisar e libere para Compras.</Aviso>}
       {c.ciclo.liberado_compras_em && <Aviso tipo="ok">Lista liberada para Compras em {dataCurta(c.ciclo.liberado_compras_em)}.</Aviso>}
-      {aba === null && (
-        <section className="opcoes-consolidar nao-imprimir" aria-label="O que você quer ver">
-          {OPCOES_CONSOLIDAR.map((o) => (
-            <button key={o.aba} type="button" className="opcao-consolidar" onClick={() => setAba(o.aba)}>
-              <Icone nome={o.icone} tamanho={28} />
-              <span><strong>{o.titulo}</strong><small>{o.texto}</small></span>
-              <Icone nome="seta" />
-            </button>
-          ))}
-          <button type="button" className="botao margem-cima" onClick={baixarPlanilha}><Icone nome="baixar" />Baixar tudo em planilha (Excel)</button>
-        </section>
-      )}
-      {aba !== null && (
-        <>
-          <div className="pilulas nao-imprimir" role="group">
-            {OPCOES_CONSOLIDAR.map((o) => <button key={o.aba} className={aba === o.aba ? 'ativo' : ''} onClick={() => setAba(o.aba)}>{o.titulo}</button>)}
-          </div>
-          <div className="botoes-acao nao-imprimir margem-cima">
-            {aba === 'separacao'
-              ? <button className="botao botao-cheio" onClick={() => window.print()} disabled={casasSeparacao.length === 0}><Icone nome="imprimir" />Gerar PDF da separação</button>
-              : <button className="botao" onClick={() => window.print()}><Icone nome="imprimir" />Imprimir</button>}
-            <button className="botao" onClick={baixarPlanilha}><Icone nome="baixar" />Baixar planilha (Excel)</button>
-          </div>
-          {aba === 'separacao' && casasSeparacao.length > 0 && <p className="fraco nao-imprimir">Sai uma página por Casa de Oração ({casasSeparacao.length} {casasSeparacao.length === 1 ? 'página' : 'páginas'}). Na janela que abrir, escolha <b>Salvar como PDF</b> ou a impressora.</p>}
-        </>
-      )}
+      <div className="pilulas nao-imprimir" role="group">
+        {ABAS.map((o) => <button key={o.aba} className={aba === o.aba ? 'ativo' : ''} onClick={() => setAba(o.aba)}>{o.titulo}</button>)}
+      </div>
+      <div className="botoes-acao nao-imprimir margem-cima">
+        {aba === 'separacao'
+          ? <button className="botao botao-cheio" onClick={() => window.print()} disabled={casasSeparacao.length === 0}><Icone nome="imprimir" />Gerar PDF da separação</button>
+          : <button className="botao" onClick={() => window.print()}><Icone nome="imprimir" />Imprimir</button>}
+        <button className="botao" onClick={baixarPlanilha}><Icone nome="baixar" />Baixar planilha (Excel)</button>
+      </div>
+      {aba === 'separacao' && casasSeparacao.length > 0 && <p className="fraco nao-imprimir">Sai uma página por Casa de Oração ({casasSeparacao.length} {casasSeparacao.length === 1 ? 'página' : 'páginas'}). Na janela que abrir, escolha <b>Salvar como PDF</b> ou a impressora.</p>}
 
       {aba === 'compra' && (
         <>
