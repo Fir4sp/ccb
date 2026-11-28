@@ -10,14 +10,13 @@
 if (!defined('KSAAS')) { http_response_code(403); exit; }
 
 date_default_timezone_set('America/Sao_Paulo');
-require_once dirname(__DIR__) . '/nucleo/pmoc_tecnico.php';   /* v1.39.0 */
 
 const IN_DIAS_PARADO = 3;
 
 return [
 
     'resumo' => function ($d) {
-        $u = exigir_perfil('admin', 'coord', 'tecnico', 'comercial', 'financeiro');
+        $u = exigir_perfil('admin', 'coord', 'tecnico', 'comercial', 'financeiro', 'gestao', 'procurador', 'seguranca');
         $tid = tenant();
         $uid = (int) $u['id'];
         $hoje = date('Y-m-d');
@@ -82,7 +81,7 @@ return [
 
         /* PMOC do mês destinado à pessoa: técnico do mês = ela; sem técnico do mês, vale a escala do plano.
            v1.39.0: com o endereço (plano ou cadastro do cliente) para o botão "Abrir mapa" — nucleo/pmoc_tecnico.php */
-        $out['meuPmoc'] = pmoc_do_usuario($tid, $uid);
+        $out['meuPmoc'] = [];
 
         /* v1.21.0: números do celular (só contagens, nada de R$) */
         $minhas = "t.tenant_id = ? AND t.excluido_em IS NULL AND t.status NOT IN ('feita','cancelada')
@@ -112,7 +111,7 @@ return [
             return $r;
         }, linhas("SELECT ch.id, ch.numero, ch.status, ch.tipo_servico, ch.com_quem_falar, ch.atualizado_em, ch.valor, cl.nome AS cliente_nome
                      FROM chamados ch JOIN clientes cl ON cl.tenant_id = ch.tenant_id AND cl.id = ch.cliente_id
-                    WHERE ch.tenant_id = ? AND ch.excluido_em IS NULL AND ch.status IN ('Falta enviar orçamento','Aguardando aprovação') AND ch.atualizado_em < ?
+                    WHERE ch.tenant_id = ? AND ch.excluido_em IS NULL AND ch.status IN ('Falta orçamento','Aguardando aprovação') AND ch.atualizado_em < ?
                     ORDER BY ch.atualizado_em LIMIT 15", [$tid, $limite]));
 
         /* ---- v1.14.0: propostas vencendo/vencidas e retornos marcados até hoje ---- */
@@ -146,7 +145,7 @@ return [
         /* ---- números ---- */
         $n = function ($sql, $p) { return valor($sql, $p); };
         $num = [
-            'aEnviar'     => (int) $n("SELECT COUNT(*) FROM chamados WHERE tenant_id = ? AND excluido_em IS NULL AND status = 'Falta enviar orçamento'", [$tid]),
+            'aEnviar'     => (int) $n("SELECT COUNT(*) FROM chamados WHERE tenant_id = ? AND excluido_em IS NULL AND status = 'Falta orçamento'", [$tid]),
             'aguardando'  => (int) $n("SELECT COUNT(*) FROM chamados WHERE tenant_id = ? AND excluido_em IS NULL AND status = 'Aguardando aprovação'", [$tid]),
             'osFaturar'   => (int) $n("SELECT COUNT(*) FROM ordens_servico WHERE tenant_id = ? AND excluido_em IS NULL AND status = 'Serviço finalizado'", [$tid]),
             'tarefasAtrasadas' => (int) $n("SELECT COUNT(*) FROM tarefas WHERE tenant_id = ? AND excluido_em IS NULL AND status NOT IN ('feita','cancelada') AND data < ?", [$tid, $hoje]),
@@ -154,7 +153,7 @@ return [
         if ($admin) {
             $num['aguardandoValor'] = (float) $n("SELECT COALESCE(SUM(valor),0) FROM chamados WHERE tenant_id = ? AND excluido_em IS NULL AND status = 'Aguardando aprovação'", [$tid]);
             $num['aReceber'] = (float) $n("SELECT COALESCE(SUM(GREATEST(COALESCE(valor,0) - recebido, 0)),0) FROM chamados
-                                            WHERE tenant_id = ? AND excluido_em IS NULL AND status IN ('Aprovado','Em Andamento','Aguardando 2ª etapa','Falta pagamento','Concluído')", [$tid]);
+                                            WHERE tenant_id = ? AND excluido_em IS NULL AND status IN ('Aprovado','Em Andamento','Concluído')", [$tid]);
         }
         $out['numeros'] = $num;
         return $out;

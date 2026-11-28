@@ -426,12 +426,12 @@
 
   /* ---------------- formatos ---------------- */
 
-  const PERFIS = { admin: "Administrador", financeiro: "Financeiro", comercial: "Comercial", coord: "Coordenação", tecnico: "Técnico", cliente: "Cliente" };
+  const PERFIS = { admin: "Administrador", financeiro: "Financeiro", comercial: "Comercial", coord: "Coordenação", gestao: "Gestão", procurador: "Procurador", seguranca: "Segurança do Trabalho", tecnico: "Técnico", cliente: "Casa de Oração" };   /* CCB v2 */
   /* v1.22.0: perfis acumulados — o acesso é a soma do perfil principal com os extras em vigor */
   const perfisDe = s => { const u = (s && s.usuario) || {}; return Array.isArray(u.perfis) && u.perfis.length ? u.perfis : [u.perfil]; };
   const temPerfil = (s, ...p) => perfisDe(s).some(x => p.indexOf(x) >= 0);
-  const veValores = s => temPerfil(s, "admin", "comercial", "financeiro");
-  const soConsultaCRM = s => temPerfil(s, "financeiro") && !temPerfil(s, "admin", "comercial", "coord");
+  const veValores = s => temPerfil(s, "admin", "comercial", "financeiro", "coord", "gestao", "procurador", "seguranca");   /* CCB v2 */
+  const soConsultaCRM = s => temPerfil(s, "financeiro", "gestao", "procurador", "seguranca") && !temPerfil(s, "admin", "comercial", "coord");
   const soTecnico = s => temPerfil(s, "tecnico") && !temPerfil(s, "admin", "coord");
 
   function dataHora(s) {

@@ -13,7 +13,7 @@
 
   function LadoMarca({ titulo, texto }) {
     return h("div", { className: "entrada-lado" },
-      h("div", { className: "entrada-marca" }, h("span", { style: { width: 30, height: 30, display: "inline-flex", flex: "none" } }, h(Simbolo)), "SGClim"),
+      h("div", { className: "entrada-marca" }, h("span", { style: { width: 30, height: 30, display: "inline-flex", flex: "none" } }, h(Simbolo)), "Sistema CCB"),
       h("div", null, h("h1", null, titulo), texto ? h("p", null, texto) : null),
       h("div", { className: "entrada-grade" }));
   }
@@ -37,7 +37,7 @@
     }
 
     return h("div", { className: "entrada" },
-      h(LadoMarca, { titulo: titulo || "Chamados, obras e manutenção num lugar só.", texto: texto === undefined ? "Do primeiro contato do cliente até a OS assinada em campo." : texto }),
+      h(LadoMarca, { titulo: titulo || "Manutenção e limpeza das Casas de Oração.", texto: texto === undefined ? "Do chamado da casa até a OS assinada em campo." : texto }),
       h("form", { className: "entrada-form", onSubmit: entrar, noValidate: true },
         h("h2", null, "Entrar"),
         h("p", { className: "sub" }, sub || "Use o e-mail cadastrado pela sua empresa."),

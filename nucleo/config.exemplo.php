@@ -1,6 +1,6 @@
 <?php
 /* =====================================================================
-   SGClim — nucleo/config.exemplo.php
+   Sistema CCB v2 — nucleo/config.exemplo.php
    MODELO do nucleo/config.php. O arquivo real fica SÓ no servidor
    (Hostinger) e nunca vai para o GitHub (.gitignore).
    Para instalar: copie como config.php e preencha os valores.

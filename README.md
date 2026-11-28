@@ -1,29 +1,30 @@
-# SGClim
+# Sistema CCB — v2 (base SGClim)
 
-Sistema de gestão para empresas de climatização — produto da **Xclim**.
-Em produção em **https://sgclim.xclim.com.br** (Hostinger, PHP + MySQL, app instalável/PWA).
+Gestão das Casas de Oração: **chamados de manutenção com aprovação por alçada, ordens de serviço com checklist**,
+e (fases seguintes) **CNS Limpeza** e **visitas**. Produto da **Xclim**. Endereço: https://ccb.xclim.com.br
 
-Documentação de negócio, decisões e plano: repositório [`Fir4sp/cerebro`](https://github.com/Fir4sp/cerebro)
-(pasta `xclim-sgclim/`).
+Desde 24/11/2026 o CCB é **uma cópia do SGClim** (decisão do Eneas), com as diferenças abaixo.
+A versão 1 (React) continua no ramo `main` — de lá vem o CNS Limpeza na fase 2.
 
-## Estrutura
-
-| Pasta | O que é |
+## Diferenças em relação ao SGClim
+| SGClim | CCB v2 |
 |---|---|
-| `nucleo/` | Base do sistema: banco, sessão, permissões, IA, Asaas, e-mail, notificações |
-| `api/` | Ações chamadas pelo app (uma por módulo) |
-| `app/` | Telas do app (JavaScript) e ícones |
-| `plataforma/` | Console da Xclim para gerenciar as empresas clientes |
-| `p/` · `q/` · `r/` | Links públicos: propostas, etiquetas QR, relatórios |
-| `cadastro/` · `indique/` · `conheca/` · `legal/` | Páginas públicas |
-| `webhook/` | Retorno de pagamentos do Asaas |
+| Clientes | **Casas de Oração**, com código e **grupo/setor** (botão Grupos) |
+| Chamado com proposta, pagamento, nota fiscal, imposto, máquinas | Chamado com **descrição**, **tipo de serviço**, **mão de obra + materiais** do catálogo. Sem pagamento, nota, imposto, margem |
+| Cliente aprova a proposta | **Aprovação por alçada**: Coordenação (até R$ 500) → Gestão (até R$ 1.000) → Procurador; **parecer da Segurança do Trabalho** nos tipos marcados. Valores e tipos em Configurações › Chamados e aprovação |
+| Perfis admin, comercial, financeiro, coord, técnico, cliente | admin, **coord**, **gestao**, **procurador**, **seguranca**, técnico, cliente (= Casa de Oração) |
+| Financeiro, Contratos, PMOC, Assinatura, Assistente IA, WhatsApp, páginas públicas | **retirados** |
+| Checklists de climatização | Checklists de **Elétrica, Hidráulica, Civil, Telhado, Ar-condicionado** (Configurações › Checklists de OS) |
 
-## O que NÃO fica aqui (ver `.gitignore`)
+## Pastas
+`nucleo/` base (banco, sessão, permissões) · `api/` uma ação por módulo (`modulo.verbo`) · `app/` telas (JS) ·
+`banco/estrutura.sql` estrutura do SGClim (sem dados) · `banco/ccb/` mudanças do CCB, em ordem.
 
-- `nucleo/config.php` — senhas e chaves; modelo em `nucleo/config.exemplo.php`
-- `arquivos/` — fotos e documentos dos clientes
-- `_ses/` — sessões
+## Instalar (banco novo)
+1. phpMyAdmin › banco vazio › Importar `banco/estrutura.sql`.
+2. Importar, em ordem, `banco/ccb/001_*.sql`, `002_*.sql`…
+3. Criar a organização e o administrador: `banco/ccb/criar_organizacao.sql` (trocar nome e e-mail; a senha provisória é trocada no 1º acesso).
+4. Copiar `nucleo/config.exemplo.php` para `nucleo/config.php` no servidor e preencher (nunca no GitHub).
 
-## Regra de produto
-
-Sistema considerado pronto em 08/11/2026. Funcionalidade nova só entra se **vários clientes** pedirem a mesma coisa.
+## Nunca no GitHub
+`nucleo/config.php`, `arquivos/`, `_ses/`, backups.

@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "SGClim",
-  "short_name": "SGClim",
-  "description": "SGClim · gestão para empresas de climatização",
+  "name": "Sistema CCB",
+  "short_name": "Sistema CCB",
+  "description": "Sistema CCB · manutenção e limpeza das Casas de Oração",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",

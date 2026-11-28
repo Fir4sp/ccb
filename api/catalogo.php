@@ -83,14 +83,14 @@ function tirar_dos_kits($materialId, $tid) {
 return [
 
     'tudo' => function ($d) {
-        exigir_perfil('admin');
+        exigir_perfil('admin', 'coord');
         return catalogo_completo(tenant());
     },
 
     /* ---------- serviços ---------- */
 
     'servicos.salvar' => function ($d) {
-        exigir_perfil('admin');
+        exigir_perfil('admin', 'coord');
         $tid = tenant();
         $id = (int) ($d['id'] ?? 0);
         $nome = txt($d['nome'] ?? '', 200);
@@ -115,7 +115,7 @@ return [
     },
 
     'servicos.excluir' => function ($d) {
-        exigir_perfil('admin');
+        exigir_perfil('admin', 'coord');
         $tid = tenant();
         $id = (int) ($d['id'] ?? 0);
         $s = linha("SELECT * FROM catalogo_servicos WHERE id = ? AND tenant_id = ? AND excluido_em IS NULL", [$id, $tid]);
@@ -128,7 +128,7 @@ return [
     /* ---------- materiais ---------- */
 
     'materiais.salvar' => function ($d) {
-        exigir_perfil('admin');
+        exigir_perfil('admin', 'coord');
         $tid = tenant();
         $id = (int) ($d['id'] ?? 0);
         $nome = txt($d['nome'] ?? '', 200);
@@ -164,7 +164,7 @@ return [
     },
 
     'materiais.excluir' => function ($d) {
-        exigir_perfil('admin');
+        exigir_perfil('admin', 'coord');
         $tid = tenant();
         $id = (int) ($d['id'] ?? 0);
         $m = linha("SELECT * FROM catalogo_materiais WHERE id = ? AND tenant_id = ? AND excluido_em IS NULL", [$id, $tid]);
@@ -180,7 +180,7 @@ return [
     /* ---------- tipos de máquina (kits) ---------- */
 
     'maquinas.salvar' => function ($d) {
-        exigir_perfil('admin');
+        exigir_perfil('admin', 'coord');
         $tid = tenant();
         $id = (int) ($d['id'] ?? 0);
         $nome = txt($d['nome'] ?? '', 150);
@@ -208,7 +208,7 @@ return [
     },
 
     'maquinas.excluir' => function ($d) {
-        exigir_perfil('admin');
+        exigir_perfil('admin', 'coord');
         $tid = tenant();
         $id = (int) ($d['id'] ?? 0);
         $k = linha("SELECT * FROM catalogo_maquinas WHERE id = ? AND tenant_id = ? AND excluido_em IS NULL", [$id, $tid]);

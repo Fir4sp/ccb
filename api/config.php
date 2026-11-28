@@ -13,6 +13,8 @@ const CONFIG_CHAVES = [
     'empresa'           => 'json',     // dados que saem no PDF
     'textos_pdf'        => 'json',     // condições, garantia, rodapé
     'checklists_os'     => 'json',
+    'tipos_servico'     => 'json',     // CCB v2: [{nome, seguranca}] — tipos do chamado; seguranca = exige parecer da Segurança do Trabalho
+    'alcadas'           => 'json',     // CCB v2: {coord: 500, gestao: 1000} — acima de gestao, Procurador
     'normas_pmoc'       => 'json',
     'modelos_contrato'  => 'json',     // v1.15.0: modelos (minutas) de contrato
     'cadastro_tarefa'   => 'json',     // v1.19.0: tarefa automática do link de cadastro {ativo, responsaveis, prazoDias}

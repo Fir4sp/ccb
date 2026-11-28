@@ -18,9 +18,9 @@
   /* telas dos módulos (crm.js, e depois os.js, pmoc.js…) se registram em K.modulos */
   function telas() { return Object.assign({}, TELAS_BASE, K.modulos || {}); }
   const GRUPOS = [
-    ["CRM",         ["chamados", "contratos", "clientes", "catalogo"], []],
-    ["Operacional", ["os", "tarefas", "pmoc", "visaoCliente"], []],   /* v1.28.0: Visão do cliente */
-    ["Financeiro",  ["financeiro"], []],   /* v1.22.0 */
+    ["Manutenção",  ["chamados", "clientes", "catalogo"], []],   /* CCB v2 */
+    ["Operacional", ["os", "tarefas"], []],
+    ["CNS Limpeza", ["limpeza"], []],   /* CCB v2 — fase 2 */
   ];
 
   /* v1.19.0: tela de um módulo desligado para a empresa não aparece (Console › Módulos) */
@@ -447,7 +447,7 @@
       : !r ? h("div", { className: "bloco vazio" }, "Carregando…")
       : h(React.Fragment, null,
           r.numeros ? h("div", { className: "kpis" },
-            kpi("Orçamentos a enviar", String(r.numeros.aEnviar), "chamados em \"Falta enviar orçamento\"", null, () => ir("chamados")),
+            kpi("Orçamentos a fazer", String(r.numeros.aEnviar), "chamados em \"Falta orçamento\"", null, () => ir("chamados")),
             kpi("Aguardando aprovação", String(r.numeros.aguardando), verV ? BRL(r.numeros.aguardandoValor) + " em propostas" : "propostas com o cliente", null, () => ir("chamados")),
             verV ? kpi("A receber", BRL(r.numeros.aReceber), "chamados ganhos − recebido", "kpi-forte", () => ir("chamados")) : null,
             K.temModulo("os") ? kpi("OS a faturar", String(r.numeros.osFaturar), "serviço finalizado", null, () => ir("os")) : null,
@@ -493,16 +493,63 @@
 
   /* ---------------- usuários ---------------- */
 
-  const PERFIS_EDITAVEIS = ["admin", "financeiro", "comercial", "coord", "tecnico", "cliente"];
-  const PERFIS_EXTRAS = ["admin", "financeiro", "comercial", "coord", "tecnico"];
+  /* CCB v2: perfis do Sistema CCB (Financeiro e Comercial do SGClim não são usados) */
+  const PERFIS_EDITAVEIS = ["admin", "coord", "gestao", "procurador", "seguranca", "tecnico", "cliente"];
+  const PERFIS_EXTRAS = ["admin", "coord", "gestao", "procurador", "seguranca", "tecnico"];
   const DESCR_PERFIL = {
     admin: "Acesso total, inclusive valores, usuários e configurações.",
     financeiro: "Financeiro completo (contas, pagar e receber, fluxo, DRE, conciliação, notas). Consulta o CRM com valores, sem alterar.",
     comercial: "CRM completo com valores: clientes, chamados, orçamentos, propostas, contratos e catálogo. Emite notas fiscais.",
-    coord: "Opera chamados, OS, PMOC e tarefas, sem ver valores.",
+    coord: "Coordenação de Manutenção: abre chamados, faz o orçamento, aprova até a alçada dela e opera as OS.",
+    gestao: "Gestão de Manutenção: consulta os chamados e aprova os de valor acima da Coordenação.",
+    procurador: "Aprova os chamados acima da alçada da Gestão.",
+    seguranca: "Segurança do Trabalho: dá o parecer nos tipos de serviço marcados (elétrica, telhado, incêndio…).",
     tecnico: "Vê só as próprias OS e tarefas, pelo celular.",
-    cliente: "Só a Área do cliente: máquinas, serviços executados, pendências e relatórios das unidades dele. Nunca vê valores.",
+    cliente: "Casa de Oração: acompanha os chamados e os serviços da própria casa.",
   };
+
+  /* CCB v2: tipos de serviço do chamado (com parecer da Segurança do Trabalho) e alçadas de aprovação */
+  const TIPOS_PADRAO = [["Elétrica", 1], ["Hidráulica e esgoto", 0], ["Civil (paredes, piso, pintura)", 0], ["Telhado, forro e calhas", 1], ["Ar-condicionado e ventiladores", 0],
+    ["Portas, janelas e fechaduras", 0], ["Som e instrumentos", 0], ["Incêndio e segurança", 1], ["Móveis e bancos", 0], ["Jardim e área externa", 0], ["Obra", 1], ["Outros", 0]];
+  function CfgChamados({ d, recarregar }) {
+    const c = d.config || {};
+    const [tipos, setTipos] = useState(() => (c.tipos_servico && c.tipos_servico.length ? c.tipos_servico : TIPOS_PADRAO.map(([nome, s]) => ({ nome, seguranca: !!s })))
+      .map(t => ({ nome: t.nome, seguranca: !!t.seguranca })));
+    const [alc, setAlc] = useState({ coord: String((c.alcadas || {}).coord != null ? c.alcadas.coord : 500), gestao: String((c.alcadas || {}).gestao != null ? c.alcadas.gestao : 1000) });
+    const [erro, setErro] = useState(""); const [enviando, setEnviando] = useState(false);
+    const muda = (i, k, v) => setTipos(l => l.map((t, j) => j === i ? Object.assign({}, t, { [k]: v }) : t));
+    const num = v => Number(String(v).replace(/\./g, "").replace(",", "."));
+    async function salvar() {
+      setErro("");
+      const out = tipos.filter(t => t.nome.trim()).map(t => ({ nome: t.nome.trim(), seguranca: !!t.seguranca }));
+      if (!out.length) return setErro("Deixe ao menos um tipo de serviço.");
+      const a = { coord: num(alc.coord), gestao: num(alc.gestao) };
+      if (!(a.coord >= 0) || !(a.gestao >= 0)) return setErro("Informe as alçadas em reais.");
+      if (a.gestao < a.coord) return setErro("A alçada da Gestão não pode ser menor que a da Coordenação.");
+      setEnviando(true);
+      try { await api("config.salvar", { valores: { tipos_servico: out, alcadas: a } }); K.avisar("Configurações dos chamados salvas."); recarregar(); }
+      catch (x) { setErro(x.message); }
+      setEnviando(false);
+    }
+    return h("div", { className: "bloco" },
+      h("div", { className: "bloco-cab" }, h("h2", null, "Chamados e aprovação"),
+        h("p", null, "Os tipos de serviço aparecem no chamado e puxam o checklist da OS pelas palavras-chave (Configurações › Checklists de OS).")),
+      h("div", { className: "bloco-corpo" },
+        h(Aviso, null, erro),
+        h("div", { className: "secao-titulo" }, "Alçadas de aprovação"),
+        h("div", { className: "linha-campos" },
+          h(Campo, { rotulo: "Coordenação aprova até (R$)" }, h(Texto, { valor: alc.coord, aoMudar: v => setAlc(Object.assign({}, alc, { coord: v })), inputMode: "decimal" })),
+          h(Campo, { rotulo: "Gestão aprova até (R$)", dica: "Acima disso, o Procurador." }, h(Texto, { valor: alc.gestao, aoMudar: v => setAlc(Object.assign({}, alc, { gestao: v })), inputMode: "decimal" }))),
+        h("div", { className: "secao-titulo" }, "Tipos de serviço"),
+        h("div", { className: "tabela-caixa" }, h("table", { className: "tabela" },
+          h("thead", null, h("tr", null, h("th", null, "Tipo"), h("th", null, "Parecer da Segurança do Trabalho"), h("th", { className: "acoes" }))),
+          h("tbody", null, tipos.map((t, i) => h("tr", { key: i },
+            h("td", null, h(Texto, { valor: t.nome, aoMudar: v => muda(i, "nome", v), "aria-label": "Tipo de serviço" })),
+            h("td", null, h("label", { className: "check" }, h("input", { type: "checkbox", checked: t.seguranca, onChange: e => muda(i, "seguranca", e.target.checked) }), "Exige parecer")),
+            h("td", { className: "acoes" }, h("button", { type: "button", className: "bt bt-leve bt-p bt-perigo", onClick: () => setTipos(l => l.filter((_, j) => j !== i)), "aria-label": "Remover tipo" }, "×"))))))),
+        h("button", { type: "button", className: "bt bt-p", onClick: () => setTipos(l => l.concat([{ nome: "", seguranca: false }])) }, "+ Tipo de serviço")),
+      h("div", { className: "bloco-pe" }, h("button", { className: "bt bt-marca", onClick: salvar, disabled: enviando }, enviando ? "Salvando…" : "Salvar")));
+  }
 
   function Usuarios({ sessao, setSessao }) {
     const [lista, recarregar] = K.useDados("usuarios.listar");
@@ -711,11 +758,12 @@
     if (cfg.carregando) return h("div", { className: "vazio" }, "Carregando…");
     if (cfg.erro) return h("div", null, h(Aviso, null, cfg.erro), h("button", { className: "bt", onClick: recarregar }, "Tentar de novo"));
     const d = cfg.dados;
-    const abas = [["empresa", "Dados da empresa"], ["orcamento", "Orçamento"], ["checklists", "Checklists de OS"], ["aparencia", "Aparência"], ["cadastro", "Link de cadastro"], ["numeracao", "Numeração"]];
+    const abas = [["empresa", "Dados da organização"], ["chamados", "Chamados e aprovação"], ["checklists", "Checklists de OS"], ["aparencia", "Aparência"], ["numeracao", "Numeração"]];   /* CCB v2 */
     return h("div", null,
       h("div", { className: "abas", role: "tablist" }, abas.map(([k, t]) => h("button", { key: k, role: "tab", "aria-selected": aba === k, className: "aba" + (aba === k ? " ativa" : ""), onClick: () => setAba(k) }, t))),
       aba === "empresa" ? h(CfgEmpresa, { d, recarregar })
       : aba === "orcamento" ? h(CfgOrcamento, { d, recarregar })
+      : aba === "chamados" ? h(CfgChamados, { d, recarregar })
       : aba === "checklists" ? (K.CfgChecklists ? h(K.CfgChecklists, { d, recarregar }) : null)
       : aba === "aparencia" ? h(CfgAparencia, { d, sessao, setSessao, recarregar })
       : aba === "cadastro" ? h(CfgCadastro, { d })

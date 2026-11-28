@@ -63,9 +63,9 @@
      com endereço e "Abrir mapa" (Início do celular, tela de OS e o plano); formulário "Eu quero" (pedido de informações) na
      página de apresentação; solicitação de serviço pelo link (solicitar/, fora do service worker) vira tarefa para a equipe.
    - Ao subir versão nova, trocar VERSAO aqui também: o cache antigo é apagado. */
-const VERSAO = "1.39.0";
-const CACHE = "ksaas-" + VERSAO;
-const APP = ["vendor", "base", "entrada", "crm", "contratos", "os", "tarefas", "pmoc", "suporte", "notificacoes", "assistente", "financeiro", "assinatura", "empresa", "boot", "pwa"]
+const VERSAO = "2.0.0";
+const CACHE = "ccb-" + VERSAO;
+const APP = ["vendor", "base", "entrada", "crm", "os", "tarefas", "notificacoes", "empresa", "boot", "pwa"]
   .map(n => "./app/" + n + ".js?v=" + VERSAO).concat(["./app/estilo.css?v=" + VERSAO]);
 
 self.addEventListener("install", e => {
@@ -80,7 +80,7 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys()
-      .then(ks => Promise.all(ks.filter(k => k.startsWith("ksaas-") && k !== CACHE).map(k => caches.delete(k))))
+      .then(ks => Promise.all(ks.filter(k => (k.startsWith("ccb-") || k.startsWith("ksaas-")) && k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

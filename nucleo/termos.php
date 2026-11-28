@@ -10,6 +10,7 @@ const TERMOS_DOCS = ['termos', 'privacidade'];
 
 /* true se o usuário ainda não aceitou a versão vigente (sem a tabela = não bloqueia ninguém) */
 function termos_pendentes($u) {
+    return false;   /* CCB v2: sistema interno da organização — os Termos do SaaS SGClim não se aplicam */
     try {
         $n = (int) valor("SELECT COUNT(*) FROM termos_aceites WHERE usuario_id = ? AND versao = ? AND documento IN ('termos','privacidade')", [(int) $u['id'], TERMOS_VERSAO]);
         return $n < count(TERMOS_DOCS);

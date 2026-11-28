@@ -47,6 +47,9 @@ function cliente_publico($c) {
     return [
         'id'         => (int) $c['id'],
         'numero'     => (int) $c['numero'],
+        'codigo'     => $c['codigo'] ?? null,                                  /* CCB v2 */
+        'grupoId'    => isset($c['grupo_id']) ? (int) $c['grupo_id'] : null,
+        'grupoNome'  => $c['grupo_nome'] ?? null,
         'nome'       => $c['nome'],
         'tipoPessoa' => $c['tipo_pessoa'],
         'documento'  => $c['documento'],
@@ -63,12 +66,12 @@ function cliente_publico($c) {
 }
 
 function cliente_da_empresa($id, $tid) {
-    $c = linha("SELECT c.*,
+    $c = linha("SELECT c.*, g.nome AS grupo_nome,
                        (SELECT COUNT(*) FROM chamados ch
                          WHERE ch.tenant_id = c.tenant_id AND ch.cliente_id = c.id AND ch.excluido_em IS NULL) AS n_chamados
-                  FROM clientes c
+                  FROM clientes c LEFT JOIN grupos g ON g.id = c.grupo_id AND g.tenant_id = c.tenant_id
                  WHERE c.id = ? AND c.tenant_id = ? AND c.excluido_em IS NULL", [$id, $tid]);
-    if (!$c) erro('Cliente não encontrado.', 404, 'NAO_ENCONTRADO');
+    if (!$c) erro('Casa de Oração não encontrada.', 404, 'NAO_ENCONTRADO');
     return $c;
 }
 
@@ -84,8 +87,8 @@ return [
         $busca = txt($d['busca'] ?? '', 100);
         if ($busca !== '') {
             $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $busca) . '%';
-            $where .= " AND (c.nome LIKE ? OR c.contato LIKE ? OR c.email LIKE ? OR c.telefone LIKE ? OR c.documento LIKE ? OR c.numero = ?";
-            array_push($par, $like, $like, $like, $like, $like, ctype_digit($busca) ? (int) $busca : -1);
+            $where .= " AND (c.nome LIKE ? OR c.contato LIKE ? OR c.email LIKE ? OR c.telefone LIKE ? OR c.documento LIKE ? OR c.codigo LIKE ? OR c.numero = ?";
+            array_push($par, $like, $like, $like, $like, $like, $like, ctype_digit($busca) ? (int) $busca : -1);
             $dig = so_digitos($busca);
             if (strlen($dig) >= 4) { $where .= " OR REPLACE(REPLACE(REPLACE(c.documento,'.',''),'/',''),'-','') LIKE ?"; $par[] = '%' . $dig . '%'; }
             $where .= ")";
@@ -94,14 +97,15 @@ return [
         $ordens = ['recentes' => 'c.numero DESC', 'antigos' => 'c.numero ASC', 'az' => 'c.nome ASC', 'za' => 'c.nome DESC'];
         $ordem = $ordens[$d['ordem'] ?? ''] ?? $ordens['recentes'];
 
+        if (!empty($d['grupoId'])) { $where .= " AND c.grupo_id = ?"; $par[] = (int) $d['grupoId']; }   /* CCB v2 */
         $total  = (int) valor("SELECT COUNT(*) FROM clientes c WHERE $where", $par);
         $pagina = max(1, (int) ($d['pagina'] ?? 1));
         $inicio = ($pagina - 1) * CLI_POR_PAGINA;
 
-        $rows = linhas("SELECT c.*,
+        $rows = linhas("SELECT c.*, g.nome AS grupo_nome,
                                (SELECT COUNT(*) FROM chamados ch
                                  WHERE ch.tenant_id = c.tenant_id AND ch.cliente_id = c.id AND ch.excluido_em IS NULL) AS n_chamados
-                          FROM clientes c
+                          FROM clientes c LEFT JOIN grupos g ON g.id = c.grupo_id AND g.tenant_id = c.tenant_id
                          WHERE $where
                          ORDER BY $ordem
                          LIMIT " . CLI_POR_PAGINA . " OFFSET " . (int) $inicio, $par);
@@ -122,22 +126,28 @@ return [
         $id  = (int) ($d['id'] ?? 0);
 
         $nome = txt($d['nome'] ?? '', 200);
-        if ($nome === '') erro('Informe o nome do cliente.');
+        if ($nome === '') erro('Informe o nome da Casa de Oração.');
         $tipo = ($d['tipoPessoa'] ?? 'PJ') === 'PF' ? 'PF' : 'PJ';
         $email = mb_strtolower(txt($d['email'] ?? '', 190));
         if ($email !== '' && !email_valido($email)) erro('E-mail inválido.');
         $situacao = ($d['situacao'] ?? 'novo') === 'antigo' ? 'antigo' : 'novo';
         $documento = documento_formatado($d['documento'] ?? '', $tipo);
-        /* cliente novo precisa dizer de onde veio (alimenta o indicador de origem) */
-        if (!$id && $situacao === 'novo' && txt($d['origem'] ?? '', 60) === '') erro('Informe como o cliente chegou até nós.');
+        /* CCB v2: casa não tem "origem" comercial; grupo/setor e código da casa */
+        $grupoId = (int) ($d['grupoId'] ?? 0);
+        if ($grupoId && !valor("SELECT id FROM grupos WHERE id = ? AND tenant_id = ?", [$grupoId, $tid])) erro('Grupo inválido.');
+        $codigo = txt_ou_null($d['codigo'] ?? '', 20);
+        if ($codigo && valor("SELECT id FROM clientes WHERE tenant_id = ? AND codigo = ? AND excluido_em IS NULL AND id <> ?", [$tid, $codigo, $id]))
+            erro('Já existe uma Casa de Oração com o código ' . $codigo . '.', 409, 'DUPLICADO');
 
         if ($documento && valor("SELECT id FROM clientes WHERE tenant_id = ? AND documento = ? AND excluido_em IS NULL AND id <> ?",
                                 [$tid, $documento, $id])) {
-            erro('Já existe um cliente com este ' . ($tipo === 'PJ' ? 'CNPJ' : 'CPF') . '.', 409, 'DUPLICADO');
+            erro('Já existe uma Casa de Oração com este ' . ($tipo === 'PJ' ? 'CNPJ' : 'CPF') . '.', 409, 'DUPLICADO');
         }
 
         $campos = [
             'nome'        => $nome,
+            'codigo'      => $codigo,
+            'grupo_id'    => $grupoId ?: null,
             'tipo_pessoa' => $tipo,
             'documento'   => $documento,
             'contato'     => txt_ou_null($d['contato'] ?? '', 150),
@@ -208,7 +218,7 @@ return [
                 if ($documento) {
                     if (isset($docsVistos[$documento])) erro(($tipo === 'PJ' ? 'CNPJ' : 'CPF') . ' repetido na planilha (linha ' . $docsVistos[$documento] . ').');
                     if (valor("SELECT 1 FROM clientes WHERE tenant_id = ? AND documento = ? AND excluido_em IS NULL", [$tid, $documento]))
-                        erro('Já existe um cliente com este ' . ($tipo === 'PJ' ? 'CNPJ' : 'CPF') . '.');
+                        erro('Já existe uma Casa de Oração com este ' . ($tipo === 'PJ' ? 'CNPJ' : 'CPF') . '.');
                     $docsVistos[$documento] = $nLinha;
                 }
                 $numero = (int) so_digitos($l['numero'] ?? '');
@@ -264,6 +274,33 @@ return [
     },
 
     /* exclusão lógica; só admin; bloqueia se houver chamados */
+    /* CCB v2: grupos/setores das Casas de Oração */
+    'grupos' => function ($d) {
+        exigir_perfil('admin', 'coord', 'tecnico');
+        return array_map(function ($g) { return ['id' => (int) $g['id'], 'nome' => $g['nome'], 'ativo' => (bool) $g['ativo'], 'casas' => (int) $g['casas']]; },
+            linhas("SELECT g.*, (SELECT COUNT(*) FROM clientes c WHERE c.tenant_id = g.tenant_id AND c.grupo_id = g.id AND c.excluido_em IS NULL) casas
+                      FROM grupos g WHERE g.tenant_id = ? ORDER BY g.nome", [tenant()]));
+    },
+    'grupo.salvar' => function ($d) {
+        exigir_perfil('admin');
+        $tid = tenant();
+        $id = (int) ($d['id'] ?? 0);
+        $nome = txt($d['nome'] ?? '', 80);
+        if ($nome === '') erro('Informe o nome do grupo.');
+        if (valor("SELECT id FROM grupos WHERE tenant_id = ? AND nome = ? AND id <> ?", [$tid, $nome, $id])) erro('Já existe um grupo com este nome.', 409, 'DUPLICADO');
+        $ativo = array_key_exists('ativo', $d) ? (empty($d['ativo']) ? 0 : 1) : 1;
+        if ($id) {
+            if (!valor("SELECT id FROM grupos WHERE id = ? AND tenant_id = ?", [$id, $tid])) erro('Grupo não encontrado.', 404);
+            q("UPDATE grupos SET nome = ?, ativo = ? WHERE id = ? AND tenant_id = ?", [$nome, $ativo, $id, $tid]);
+            auditar('grupo_editar', 'grupos', $id, $nome);
+        } else {
+            q("INSERT INTO grupos (tenant_id, nome, ativo) VALUES (?, ?, ?)", [$tid, $nome, $ativo]);
+            $id = (int) db()->lastInsertId();
+            auditar('grupo_criar', 'grupos', $id, $nome);
+        }
+        return ['id' => $id, 'nome' => $nome, 'ativo' => (bool) $ativo];
+    },
+
     'excluir' => function ($d) {
         exigir_perfil('admin');
         $tid = tenant();

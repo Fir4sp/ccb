@@ -163,8 +163,10 @@ function tenant() { return (int) eu()['tenant_id']; }
    Cada usuário tem o perfil principal (usuarios.perfil: define a tela inicial e o menu) e pode ter perfis
    extras (usuario_perfis), com validade opcional. O acesso é a SOMA dos perfis.
    Perfis: admin · financeiro · comercial · coord · tecnico · cliente (cliente nunca acumula com os internos). */
-const PERFIS_TODOS = ['admin', 'financeiro', 'comercial', 'coord', 'tecnico', 'cliente'];
-const PERFIS_INTERNOS = ['admin', 'financeiro', 'comercial', 'coord', 'tecnico'];
+/* CCB v2: + gestao (Gestão de Manutenção), procurador e seguranca (Segurança do Trabalho) — aprovam/dão parecer nos chamados */
+const PERFIS_TODOS = ['admin', 'financeiro', 'comercial', 'coord', 'gestao', 'procurador', 'seguranca', 'tecnico', 'cliente'];
+const PERFIS_INTERNOS = ['admin', 'financeiro', 'comercial', 'coord', 'gestao', 'procurador', 'seguranca', 'tecnico'];
+const PERFIS_APROVACAO = ['gestao', 'procurador', 'seguranca'];
 
 function perfis_carregar($u) {
     $l = [$u['perfil']];
@@ -181,12 +183,12 @@ function tem_perfil($u, ...$p) { return (bool) array_intersect(perfis_de($u), $p
 /* técnico "puro": restrições de campo valem só para quem não tem também perfil de escritório na operação */
 function so_tecnico($u) { return tem_perfil($u, 'tecnico') && !tem_perfil($u, 'admin', 'coord'); }
 /* quem vê valores em R$ no CRM */
-function ve_valores($u) { return tem_perfil($u, 'admin', 'comercial', 'financeiro'); }
+function ve_valores($u) { return tem_perfil($u, 'admin', 'comercial', 'financeiro', 'coord', 'gestao', 'procurador', 'seguranca'); }   /* CCB v2: coordenação orça; quem aprova vê o valor */
 
 /* ação em andamento (o roteador grava), para a regra dos perfis novos no CRM */
 function acao_atual() { return $GLOBALS['K_ACAO'] ?? ['', '']; }
 const CRM_MODULOS = ['clientes', 'chamados', 'catalogo', 'contratos'];
-const CRM_LEITURAS = '/^(listar|obter|opcoes|resumo|acomp\.listar|proposta\.status|tudo|eventos|versoes|arquivos|do_chamado|ler|link_cadastro)$/';
+const CRM_LEITURAS = '/^(grupos|listar|obter|opcoes|resumo|acomp\.listar|proposta\.status|tudo|eventos|versoes|arquivos|do_chamado|ler|link_cadastro)$/';
 
 /* Comercial = administrador dentro do CRM (clientes, chamados/orçamentos, catálogo, contratos).
    Financeiro = consulta o CRM (com valores), sem alterar. Configurações da empresa: os dois só leem. */
@@ -198,6 +200,7 @@ function perfil_permite($u, $perfis) {
     if (in_array($mod, CRM_MODULOS, true)) {
         if (tem_perfil($u, 'comercial')) return true;
         if (tem_perfil($u, 'financeiro') && $leitura) return true;
+        if (tem_perfil($u, ...PERFIS_APROVACAO) && $leitura && $mod !== 'catalogo') return true;   /* CCB v2: quem aprova consulta casas e chamados */
     }
     if ($mod === 'config' && $leitura && tem_perfil($u, 'comercial', 'financeiro')) return true;
     return false;

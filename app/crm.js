@@ -27,6 +27,11 @@
     const [estado, setEstado] = useState({ carregando: true, erro: "", dados: null });
     const [editando, setEditando] = useState(null);
     const [importando, setImportando] = useState(false);
+    const [grupos, setGrupos] = useState([]);          /* CCB v2 */
+    const [grupoId, setGrupoId] = useState("");
+    const [verGrupos, setVerGrupos] = useState(false);
+    const carregarGrupos = () => api("clientes.grupos").then(setGrupos, () => {});
+    useEffect(() => { carregarGrupos(); }, []);
     const pedido = useRef(0);
     const ehAdmin = K.temPerfil(sessao, "admin", "comercial");   /* v1.22.0: comercial administra o CRM */
     const consulta = K.soConsultaCRM(sessao);                     /* v1.22.0: financeiro só consulta */
@@ -34,19 +39,19 @@
     function carregar(pg) {
       const n = ++pedido.current;   // ignora respostas atrasadas de buscas antigas
       setEstado(e => Object.assign({}, e, { carregando: true, erro: "" }));
-      api("clientes.listar", { busca: busca.trim(), ordem, pagina: pg || pagina }).then(
+      api("clientes.listar", { busca: busca.trim(), ordem, pagina: pg || pagina, grupoId: grupoId || null }).then(
         d => { if (n === pedido.current) setEstado({ carregando: false, erro: "", dados: d }); },
         e => { if (n === pedido.current) setEstado({ carregando: false, erro: e.message, dados: null }); });
     }
 
     /* busca espera o usuário parar de digitar */
-    useEffect(() => { const t = setTimeout(() => { setPagina(1); carregar(1); }, 300); return () => clearTimeout(t); }, [busca, ordem]); // eslint-disable-line
+    useEffect(() => { const t = setTimeout(() => { setPagina(1); carregar(1); }, 300); return () => clearTimeout(t); }, [busca, ordem, grupoId]); // eslint-disable-line
     useEffect(() => { carregar(pagina); }, [pagina]); // eslint-disable-line
 
     async function excluir(c) {
-      const ok = await K.confirmar({ titulo: "Excluir " + c.nome + "?", texto: "O cliente some das listas. O histórico continua registrado.", botao: "Excluir", perigo: true });
+      const ok = await K.confirmar({ titulo: "Excluir " + c.nome + "?", texto: "A Casa de Oração some das listas. O histórico continua registrado.", botao: "Excluir", perigo: true });
       if (!ok) return;
-      try { await api("clientes.excluir", { id: c.id }); K.avisar("Cliente excluído."); carregar(); }
+      try { await api("clientes.excluir", { id: c.id }); K.avisar("Casa de Oração excluída."); carregar(); }
       catch (x) { K.avisar(x.message, true); }
     }
 
@@ -57,37 +62,39 @@
 
     return h("div", null,
       h("div", { className: "barra" },
-        h("input", { className: "entrada-texto busca", placeholder: "Buscar por nome, contato, CNPJ/CPF, telefone ou nº", value: busca, onChange: e => setBusca(e.target.value), "aria-label": "Buscar clientes" }),
+        h("input", { className: "entrada-texto busca", placeholder: "Buscar por nome, código, contato ou telefone", value: busca, onChange: e => setBusca(e.target.value), "aria-label": "Buscar Casas de Oração" }),
+        h("select", { className: "entrada-texto", style: { width: "auto" }, value: grupoId, onChange: e => setGrupoId(e.target.value), "aria-label": "Grupo" },
+          h("option", { value: "" }, "Todos os grupos"), grupos.map(g => h("option", { key: g.id, value: g.id }, g.nome))),
         h("select", { className: "entrada-texto", style: { width: "auto" }, value: ordem, onChange: e => setOrdem(e.target.value), "aria-label": "Ordenar" },
           h("option", { value: "recentes" }, "Mais recentes"), h("option", { value: "antigos" }, "Mais antigos"),
           h("option", { value: "az" }, "Nome (A → Z)"), h("option", { value: "za" }, "Nome (Z → A)")),
         h("div", { style: { flex: 1 } }),
-        ehAdmin ? h("button", { className: "bt", onClick: () => setImportando(true) }, "Importar planilha") : null,
-        consulta ? null : h("button", { className: "bt bt-marca", onClick: () => setEditando({}) }, "Novo cliente")),
+        ehAdmin ? h("button", { className: "bt", onClick: () => setVerGrupos(true) }, "Grupos") : null,
+        consulta ? null : h("button", { className: "bt bt-marca", onClick: () => setEditando({}) }, "Nova Casa de Oração")),
       h("div", { className: "bloco" },
         estado.erro ? h("div", { className: "vazio" }, h(Aviso, null, estado.erro), h("button", { className: "bt", onClick: () => carregar() }, "Tentar de novo"))
         : !d ? h("div", { className: "vazio" }, "Carregando…")
-        : !itens.length ? h("div", { className: "vazio" }, h("strong", null, t ? "Nenhum cliente encontrado." : "Nenhum cliente ainda."), t ? "Confira a busca." : "Cadastre o primeiro cliente para abrir chamados.")
+        : !itens.length ? h("div", { className: "vazio" }, h("strong", null, t ? "Nenhuma Casa de Oração encontrada." : "Nenhuma Casa de Oração ainda."), t ? "Confira a busca." : "Cadastre a primeira Casa de Oração para abrir chamados.")
         : h(React.Fragment, null,
             h("div", { className: "tabela-caixa", style: { opacity: estado.carregando ? .55 : 1 } }, h("table", { className: "tabela" },
-              h("thead", null, h("tr", null, h("th", null, "Nº"), h("th", null, "Cliente"), h("th", null, "Contato"), h("th", null, "Situação"), h("th", null, "Chamados"), h("th", { className: "acoes" }))),
+              h("thead", null, h("tr", null, h("th", null, "Código"), h("th", null, "Casa de Oração"), h("th", null, "Grupo"), h("th", null, "Contato"), h("th", null, "Chamados"), h("th", { className: "acoes" }))),
               h("tbody", null, itens.map(c => h("tr", { key: c.id },
-                h("td", { className: "cel-sub" }, c.numero),
-                h("td", null, h("div", { className: "cel-titulo" }, c.nome), h("div", { className: "cel-sub" }, [c.documento, c.email].filter(Boolean).join(" · ") || "—")),
+                h("td", { className: "cel-sub" }, c.codigo || c.numero),
+                h("td", null, h("div", { className: "cel-titulo" }, c.nome), h("div", { className: "cel-sub" }, c.endereco || "—")),
+                h("td", null, c.grupoNome || h("span", { className: "cel-sub" }, "—")),
                 h("td", null, h("div", null, c.contato || "—"), h("div", { className: "cel-sub" }, c.telefone || "")),
-                h("td", null, h("span", { className: "selo " + (c.situacao === "antigo" ? "selo-plain" : "selo-ok") }, c.situacao === "antigo" ? "Antigo" : "Novo"),
-                  c.situacao === "novo" && c.origem ? h("div", { className: "cel-sub" }, c.origem) : null),
                 h("td", null, c.chamados),
                 h("td", { className: "acoes" },
                   h("button", { className: "bt bt-leve bt-p", onClick: () => setEditando(c) }, consulta ? "Ver" : "Editar"),
                   ehAdmin ? h("button", { className: "bt bt-leve bt-p bt-perigo", onClick: () => excluir(c) }, "Excluir") : null)))))),
             h("div", { className: "paginacao" },
-              h("span", null, d.total + (d.total === 1 ? " cliente" : " clientes")),
+              h("span", null, d.total + (d.total === 1 ? " Casa de Oração" : " Casas de Oração")),
               paginas > 1 ? h("span", { style: { display: "flex", gap: 6, alignItems: "center" } },
                 h("button", { className: "bt bt-p", disabled: pagina <= 1, onClick: () => setPagina(pagina - 1) }, "Anterior"),
                 h("span", null, pagina + " de " + paginas),
                 h("button", { className: "bt bt-p", disabled: pagina >= paginas, onClick: () => setPagina(pagina + 1) }, "Próxima")) : null))),
-      editando ? h(FormCliente, { cliente: editando, consulta, aoFechar: () => setEditando(null), aoSalvar: () => { setEditando(null); carregar(); } }) : null,
+      editando ? h(FormCliente, { cliente: editando, consulta, grupos, aoNovoGrupo: carregarGrupos, aoFechar: () => setEditando(null), aoSalvar: () => { setEditando(null); carregar(); } }) : null,
+      verGrupos ? h(Grupos, { grupos, aoMudar: carregarGrupos, aoFechar: () => { setVerGrupos(false); carregar(); } }) : null,
       importando ? h(ImportarClientes, { aoFechar: () => setImportando(false), aoConcluir: () => { setPagina(1); carregar(1); } }) : null);
   }
 
@@ -263,55 +270,76 @@
 
   /* ---------------- formulário ---------------- */
 
-  function FormCliente({ cliente, aoFechar, aoSalvar, consulta }) {
+  /* CCB v2: grupos/setores das Casas de Oração (Grupo 8.1, 8.2…) */
+  function Grupos({ grupos, aoMudar, aoFechar }) {
+    const [nome, setNome] = useState("");
+    const [enviando, setEnviando] = useState(false);
+    async function salvar(g) {
+      setEnviando(true);
+      try { await api("clientes.grupo.salvar", g); K.avisar("Grupo salvo."); setNome(""); aoMudar(); }
+      catch (x) { K.avisar(x.message, true); }
+      setEnviando(false);
+    }
+    async function renomear(g) {
+      const novo = window.prompt("Novo nome do grupo:", g.nome);
+      if (novo && novo.trim() && novo.trim() !== g.nome) salvar({ id: g.id, nome: novo.trim(), ativo: g.ativo });
+    }
+    return h(Painel, { titulo: "Grupos", sub: "Setores que reúnem as Casas de Oração (ex.: Grupo 8.1).", aoFechar,
+      rodape: [h("button", { key: "f", className: "bt bt-marca", onClick: aoFechar }, "Fechar")] },
+      grupos.length ? h("div", { className: "tabela-caixa" }, h("table", { className: "tabela" },
+        h("thead", null, h("tr", null, h("th", null, "Grupo"), h("th", null, "Casas"), h("th", null, "Situação"), h("th", { className: "acoes" }))),
+        h("tbody", null, grupos.map(g => h("tr", { key: g.id },
+          h("td", null, h("b", null, g.nome)), h("td", null, g.casas),
+          h("td", null, h("span", { className: "selo " + (g.ativo ? "selo-ok" : "selo-plain") }, g.ativo ? "Ativo" : "Inativo")),
+          h("td", { className: "acoes" },
+            h("button", { className: "bt bt-leve bt-p", disabled: enviando, onClick: () => renomear(g) }, "Renomear"),
+            h("button", { className: "bt bt-leve bt-p", disabled: enviando, onClick: () => salvar({ id: g.id, nome: g.nome, ativo: !g.ativo }) }, g.ativo ? "Desativar" : "Ativar"))))))) 
+        : h("p", { className: "cel-sub" }, "Nenhum grupo ainda."),
+      h("div", { className: "secao-titulo" }, "Novo grupo"),
+      h("div", { className: "os-add" },
+        h("input", { className: "entrada-texto", placeholder: "Ex.: Grupo 8.1", value: nome, onChange: e => setNome(e.target.value) }),
+        h("button", { type: "button", className: "bt bt-p", disabled: enviando || !nome.trim(), onClick: () => salvar({ nome: nome.trim() }) }, "Adicionar")));
+  }
+
+  function FormCliente({ cliente, aoFechar, aoSalvar, consulta, grupos, aoNovoGrupo }) {
     const novo = !cliente.id;
-    const [f, setF] = useState(Object.assign({ nome: "", tipoPessoa: "PJ", documento: "", contato: "", email: "", telefone: "", endereco: "", situacao: "novo", origem: "", obs: "" }, cliente));
+    const [f, setF] = useState(Object.assign({ nome: "", codigo: "", grupoId: null, contato: "", email: "", telefone: "", endereco: "", situacao: "antigo", obs: "" }, cliente));
     const [erro, setErro] = useState("");
     const [enviando, setEnviando] = useState(false);
     const mudar = k => v => setF(Object.assign({}, f, { [k]: v }));
+    const lista = (grupos || []).filter(g => g.ativo || g.id === f.grupoId);
 
     async function salvar() {
       setErro("");
-      if (!String(f.nome || "").trim()) return setErro("Informe o nome do cliente.");
-      if (novo && f.situacao === "novo" && !f.origem) return setErro("Informe como o cliente chegou até nós.");
+      if (!String(f.nome || "").trim()) return setErro("Informe o nome da Casa de Oração.");
       setEnviando(true);
       try {
         const c = await api("clientes.salvar", f);
-        K.avisar(novo ? "Cliente nº " + c.numero + " cadastrado." : "Alterações salvas.");
+        K.avisar(novo ? "Casa de Oração cadastrada." : "Alterações salvas.");
         aoSalvar(c);
       } catch (x) { setErro(x.message); setEnviando(false); }
     }
 
     return h(Painel, {
-      titulo: novo ? "Novo cliente" : "Cliente nº " + cliente.numero,
-      sub: novo ? "O número do cliente é gerado ao salvar." : cliente.nome,
+      titulo: novo ? "Nova Casa de Oração" : cliente.nome,
+      sub: novo ? "Cadastre a casa para abrir chamados e pedidos." : [cliente.codigo, cliente.grupoNome].filter(Boolean).join(" · "),
       aoFechar,
       rodape: consulta ? [h("button", { key: "f", className: "bt bt-marca", onClick: aoFechar }, "Fechar")] : [h("button", { key: "c", className: "bt", onClick: aoFechar }, "Cancelar"),
-               h("button", { key: "s", className: "bt bt-marca", onClick: salvar, disabled: enviando }, enviando ? "Salvando…" : novo ? "Cadastrar cliente" : "Salvar alterações")],
+               h("button", { key: "s", className: "bt bt-marca", onClick: salvar, disabled: enviando }, enviando ? "Salvando…" : novo ? "Cadastrar" : "Salvar alterações")],
     },
       h(Aviso, null, erro),
-      h(Campo, { rotulo: "Nome / empresa" }, h(Texto, { valor: f.nome, aoMudar: mudar("nome"), autoFocus: true })),
+      h(Campo, { rotulo: "Nome da Casa de Oração" }, h(Texto, { valor: f.nome, aoMudar: mudar("nome"), autoFocus: true, placeholder: "Ex.: Jardim Ingás" })),
       h("div", { className: "linha-campos" },
-        h(Campo, { rotulo: "Tipo" },
-          h("select", { value: f.tipoPessoa, onChange: e => setF(Object.assign({}, f, { tipoPessoa: e.target.value, documento: mascaraDoc(f.documento, e.target.value) })) },
-            h("option", { value: "PJ" }, "Empresa (CNPJ)"), h("option", { value: "PF" }, "Pessoa (CPF)"))),
-        h(Campo, { rotulo: f.tipoPessoa === "PF" ? "CPF" : "CNPJ", dica: "Opcional." },
-          h(Texto, { valor: f.documento || "", aoMudar: v => mudar("documento")(mascaraDoc(v, f.tipoPessoa)), inputMode: "numeric" }))),
+        h(Campo, { rotulo: "Código", dica: "Opcional (ex.: CO-01)." }, h(Texto, { valor: f.codigo || "", aoMudar: mudar("codigo") })),
+        h(Campo, { rotulo: "Grupo" },
+          h("select", { value: f.grupoId || "", onChange: e => mudar("grupoId")(e.target.value ? Number(e.target.value) : null) },
+            h("option", { value: "" }, lista.length ? "—" : "Cadastre os grupos no botão Grupos"), lista.map(g => h("option", { key: g.id, value: g.id }, g.nome))))),
       h("div", { className: "secao-titulo" }, "Contato"),
       h("div", { className: "linha-campos" },
-        h(Campo, { rotulo: "Com quem falar" }, h(Texto, { valor: f.contato || "", aoMudar: mudar("contato") })),
+        h(Campo, { rotulo: "Com quem falar", dica: "Ex.: encarregado de manutenção." }, h(Texto, { valor: f.contato || "", aoMudar: mudar("contato") })),
         h(Campo, { rotulo: "Telefone" }, h(Texto, { valor: f.telefone || "", aoMudar: mudar("telefone"), inputMode: "tel" }))),
       h(Campo, { rotulo: "E-mail" }, h(Texto, { valor: f.email || "", aoMudar: mudar("email"), type: "email", inputMode: "email" })),
       h(Campo, { rotulo: "Endereço" }, h(Texto, { valor: f.endereco || "", aoMudar: mudar("endereco") })),
-      h("div", { className: "secao-titulo" }, "Relacionamento"),
-      h("div", { className: "linha-campos" },
-        h(Campo, { rotulo: "Situação" },
-          h("select", { value: f.situacao, onChange: e => mudar("situacao")(e.target.value) },
-            h("option", { value: "novo" }, "Novo"), h("option", { value: "antigo" }, "Antigo (já era cliente)"))),
-        f.situacao === "novo" ? h(Campo, { rotulo: "Como chegou até nós" },
-          h("select", { value: f.origem || "", onChange: e => mudar("origem")(e.target.value) },
-            h("option", { value: "" }, "—"), ORIGENS.map(o => h("option", { key: o, value: o }, o)),
-            f.origem && ORIGENS.indexOf(f.origem) < 0 ? h("option", { value: f.origem }, f.origem) : null)) : null),
       h(Campo, { rotulo: "Observações" }, h("textarea", { value: f.obs || "", onChange: e => mudar("obs")(e.target.value) })));
   }
 
@@ -400,17 +428,17 @@
     }, [texto, aberto]);
     if (valor && !aberto) {
       return h("div", { className: "escolhido" },
-        h("span", null, h("b", null, rotulo || ("Cliente #" + valor))),
+        h("span", null, h("b", null, rotulo || ("Casa #" + valor))),
         h("button", { type: "button", className: "bt bt-leve bt-p", onClick: () => { setTexto(""); setAberto(true); } }, "Trocar"));
     }
     return h("div", { className: "escolhe" },
-      h("input", { className: "entrada-texto", autoFocus: true, placeholder: "Digite o nome, CNPJ ou nº do cliente", value: texto,
+      h("input", { className: "entrada-texto", autoFocus: true, placeholder: "Digite o nome ou o código da Casa de Oração", value: texto,
         onChange: e => setTexto(e.target.value), onFocus: () => setAberto(true) }),
       aberto ? h("div", { className: "escolhe-lista" },
         itens.length ? itens.map(c => h("button", { type: "button", key: c.id, onClick: () => { aoEscolher(c); setAberto(false); } },
           h("b", null, c.nome), h("span", null, "nº " + c.numero + (c.contato ? " · " + c.contato : ""))))
-        : h("div", { className: "cel-sub", style: { padding: 10 } }, texto.trim() ? "Nenhum cliente encontrado. Cadastre em Clientes." : "Carregando…"),
-        valor ? h("button", { type: "button", className: "escolhe-cancelar", onClick: () => setAberto(false) }, "Manter o cliente atual") : null) : null);
+        : h("div", { className: "cel-sub", style: { padding: 10 } }, texto.trim() ? "Nenhuma Casa de Oração encontrada. Cadastre em Casas de Oração." : "Carregando…"),
+        valor ? h("button", { type: "button", className: "escolhe-cancelar", onClick: () => setAberto(false) }, "Manter a casa atual") : null) : null);
   }
 
   /* =================================================================
@@ -527,19 +555,18 @@
     return h("div", null,
       h("div", { className: "ch-per-barra" }, h(SeletorPeriodo, { periodo, setPeriodo }), ehAdmin && K.BotaoValores ? h(K.BotaoValores, null) : null),
       resumo ? h("div", { className: "kpis ch-kpis", style: { opacity: resumo.de === intervaloDe(periodo).de && resumo.ate === intervaloDe(periodo).ate ? 1 : .55 } },
-        kpi("Oportunidades", String(resumo.novos), verV ? BRL(resumo.novosValor) + " orçado · chamados abertos no período" : "chamados abertos no período"),
-        kpi("Ganhos", verV ? BRL(resumo.ganhoValor) : String(resumo.ganho), (verV ? resumo.ganho + " chamado(s) · líquido " + BRL(resumo.liquido) : "chamado(s) ganho(s) no período"), "kpi-forte"),
-        kpi("Perdidos", verV ? BRL(resumo.perdidoValor) : String(resumo.perdido), verV ? resumo.perdido + " chamado(s) não aprovado(s)" : "não aprovados no período"),
+        kpi("Abertos", String(resumo.novos), verV ? BRL(resumo.novosValor) + " orçado · chamados abertos no período" : "chamados abertos no período"),
+        kpi("Aprovados", verV ? BRL(resumo.ganhoValor) : String(resumo.ganho), (verV ? resumo.ganho + " chamado(s) aprovado(s)" : "chamado(s) aprovado(s) no período"), "kpi-forte"),
+        kpi("Não aprovados", verV ? BRL(resumo.perdidoValor) : String(resumo.perdido), verV ? resumo.perdido + " chamado(s) não aprovado(s) ou cancelado(s)" : "não aprovados no período"),
         verV ? kpi("A receber", BRL(resumo.aReceber), "dos ganhos do período · recebido " + BRL(resumo.recebido)) : null,
-        kpi("Conversão", NUM(resumo.conversao, 1) + "%", resumo.ganho + " ganhos · " + resumo.perdido + " perdidos" + (resumo.cicloMedio != null ? " · ciclo " + resumo.cicloMedio + " d" : "")),
-        kpi("Novos clientes", String(resumo.novosClientes), "cadastrados no período"),
-        kpi("Em aberto agora", String(resumo.aberto), verV ? BRL(resumo.abertoValor) + " em negociação" : "todos os períodos")) : null,
+        kpi("Taxa de aprovação", NUM(resumo.conversao, 1) + "%", resumo.ganho + " aprovados · " + resumo.perdido + " não aprovados" + (resumo.cicloMedio != null ? " · ciclo " + resumo.cicloMedio + " d" : "")),
+        kpi("Em aberto agora", String(resumo.aberto), verV ? BRL(resumo.abertoValor) + " aguardando orçamento ou aprovação" : "todos os períodos")) : null,
       op ? h("div", { className: "chips ch-chips" },
         chip("ativos", "Ativos", ativos),
         chip("", "Todos", totalGeral),
         chip("cat:aberto", "Em aberto", cont("aberto"), "st-aberto"),
-        chip("cat:ganho", "Ganhos", cont("ganho"), "st-ganho"),
-        chip("cat:perdido", "Perdidos", cont("perdido"), "st-perdido"),
+        chip("cat:ganho", "Aprovados", cont("ganho"), "st-ganho"),
+        chip("cat:perdido", "Não aprovados", cont("perdido"), "st-perdido"),
         h("span", { className: "chips-sep" }),
         op.status.map(s => porStatus[s.nome] ? chip(s.nome, s.nome, porStatus[s.nome]) : null),
         d && d.propostas && (d.propostas.vencendo || d.propostas.vencidas || d.propostas.retorno || status.indexOf("val:") === 0) ? h(React.Fragment, null,
@@ -548,12 +575,12 @@
           chip("val:vencidas", "Vencidas", d.propostas.vencidas, "st-vencida"),
           chip("val:retorno", "Retorno hoje", d.propostas.retorno, "st-retorno")) : null) : null,
       h("div", { className: "barra ch-barra" },
-        h("input", { className: "entrada-texto busca", placeholder: "Buscar por nº, cliente, contato ou descrição", value: busca, onChange: e => setBusca(e.target.value), "aria-label": "Buscar chamados" }),
+        h("input", { className: "entrada-texto busca", placeholder: "Buscar por nº, Casa de Oração, contato ou descrição", value: busca, onChange: e => setBusca(e.target.value), "aria-label": "Buscar chamados" }),
         h("select", { className: "entrada-texto", value: tipo, onChange: e => setTipo(e.target.value), "aria-label": "Tipo de serviço" },
           h("option", { value: "" }, "Todos os tipos"), (op ? op.tipos : []).map(t => h("option", { key: t, value: t }, t))),
         h("select", { className: "entrada-texto", value: ordem, onChange: e => setOrdem(e.target.value), "aria-label": "Ordenar" },
           h("option", { value: "recentes" }, "Mais recentes"), h("option", { value: "antigos" }, "Mais antigos"),
-          h("option", { value: "atualizados" }, "Atualizados por último"), h("option", { value: "cliente" }, "Cliente (A → Z)")),
+          h("option", { value: "atualizados" }, "Atualizados por último"), h("option", { value: "cliente" }, "Casa de Oração (A → Z)")),
         h("div", { className: "ch-espaco", style: { flex: 1 } }),
         consulta ? null : h("button", { className: "bt bt-marca ch-novo", onClick: () => setEditando({}), disabled: !op }, "Novo chamado")),
       h("div", { className: "bloco" },
@@ -574,11 +601,11 @@
                     h("span", { className: "cel-sub" }, dataBR(c.abertoEm) + " · " + (c.fechadoEm ? "fechado em " + dias + " d" : dias + " d em aberto")),
                     h("span", { style: { display: "flex", gap: 6 } },
                       ehAdmin && c.valor != null ? h("button", { className: "bt bt-p", onClick: () => pdfProposta(c, sessao) }, "PDF") : null,
-                      h(BotaoZap, { c, sessao, ehAdmin, aoEnviado: carregar }),
+
                       h("button", { className: "bt bt-p bt-marca", onClick: () => setEditando(c) }, "Abrir"))));
               }))
             : h("div", { className: "tabela-caixa", style: { opacity: estado.carregando ? .55 : 1 } }, h("table", { className: "tabela ch-tab" },
-              h("thead", null, h("tr", null, h("th", null, "Nº"), h("th", null, "Cliente"), h("th", null, "Serviço"), h("th", null, "Status"),
+              h("thead", null, h("tr", null, h("th", null, "Nº"), h("th", null, "Casa de Oração"), h("th", null, "Serviço"), h("th", null, "Status"),
                 h("th", null, "Abertura"), ehAdmin ? h("th", { className: "num" }, "Valor") : null, h("th", { className: "acoes" }))),
               h("tbody", null, itens.map(c => {
                 const dias = diasEntre(c.abertoEm, c.fechadoEm);
@@ -592,7 +619,7 @@
                   h("td", { className: "acoes" },
                     h("button", { className: "bt bt-leve bt-p", onClick: () => setEditando(c) }, "Abrir"),
                     ehAdmin && c.valor != null ? h("button", { className: "bt bt-leve bt-p", onClick: () => pdfProposta(c, sessao), title: "Proposta em PDF" }, "PDF") : null,
-                    h(BotaoZap, { c, sessao, ehAdmin, leve: true, aoEnviado: carregar })));
+                    null));
               })))),
             h("div", { className: "paginacao" },
               h("span", null, d.total + (d.total === 1 ? " chamado" : " chamados")),
@@ -600,7 +627,8 @@
                 h("button", { className: "bt bt-p", disabled: pagina <= 1, onClick: () => setPagina(pagina - 1) }, "Anterior"),
                 h("span", null, pagina + " de " + paginas),
                 h("button", { className: "bt bt-p", disabled: pagina >= paginas, onClick: () => setPagina(pagina + 1) }, "Próxima")) : null))),
-      editando ? h(FormChamado, { chamado: editando, op, ehAdmin, consulta, sessao, aoFechar: () => setEditando(null), aoSalvar: () => { setEditando(null); carregar(); carregarResumo(); },
+      editando ? h(FormChamado, { key: (editando.id || "novo") + ":" + (editando.atualizadoEm || "") + ":" + (editando.status || ""), chamado: editando, op, ehAdmin, consulta, sessao, aoFechar: () => setEditando(null),
+        aoSalvar: (c, manter) => { if (manter && c) setEditando(c); else setEditando(null); carregar(); carregarResumo(); },
         aoExcluir: ehAdmin && !consulta ? c => { setEditando(null); excluir(c); } : null }) : null);
   }
 
@@ -641,17 +669,13 @@
         imposto: { on: !!(salvo.imposto && salvo.imposto.on), pct: valTexto(salvo.imposto ? salvo.imposto.pct : c.aliquota) },
         rt: { on: !!(salvo.rt && salvo.rt.on), pct: valTexto(salvo.rt ? salvo.rt.pct : c.rt_padrao) },
         desconto: { tipo: salvo.desconto && salvo.desconto.tipo === "pct" ? "pct" : "valor", valor: salvo.desconto && salvo.desconto.valor ? valTexto(salvo.desconto.valor) : "" },
-        pagamentos: (salvo.pagamentos && salvo.pagamentos.length ? salvo.pagamentos : [{ descricao: "Entrada", pct: 50 }, { descricao: "Após o término", pct: 50 }]).map(p => ({ descricao: p.descricao || "", pct: valTexto(p.pct) })),
-        markup: valTexto(salvo.markup != null ? salvo.markup : (c.markup_materiais != null ? c.markup_materiais : 15)),
+        pagamentos: [], markup: "0",   /* CCB v2: sem forma de pagamento e sem margem nos materiais */
       };
     }
     return {
       servicos: [], materiais: [], maquinas: [],
-      imposto: { on: false, pct: valTexto(c.aliquota != null ? c.aliquota : 16) },
-      rt: { on: false, pct: valTexto(c.rt_padrao != null ? c.rt_padrao : 10) },
-      desconto: { tipo: "valor", valor: "" },
-      pagamentos: [{ descricao: "Entrada", pct: "50" }, { descricao: "Após o término", pct: "50" }],
-      markup: valTexto(c.markup_materiais != null ? c.markup_materiais : 15),
+      imposto: { on: false, pct: "0" }, rt: { on: false, pct: "0" }, desconto: { tipo: "valor", valor: "" },
+      pagamentos: [], markup: "0",   /* CCB v2 */
     };
   }
 
@@ -749,7 +773,7 @@
     return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>' + esc(titulo) + "</title><style>" + docEstilo(ctx.cor) + "</style></head><body>" +
       docCabecalho(ctx) +
       "<h1>Orçamento - " + esc(titulo) + '</h1><div class="meta">Data: ' + new Date().toLocaleDateString("pt-BR") + (ch.tipoServico ? " · " + esc(ch.tipoServico) : "") + "</div>" +
-      '<div class="box"><b>Cliente:</b> ' + esc(cli.nome) + (ch.comQuemFalar ? " &nbsp;·&nbsp; <b>A/C:</b> " + esc(ch.comQuemFalar) : "") +
+      '<div class="box"><b>Casa de Oração:</b> ' + esc(cli.nome) + (ch.comQuemFalar ? " &nbsp;·&nbsp; <b>A/C:</b> " + esc(ch.comQuemFalar) : "") +
         (cli.documento ? "<br><b>CNPJ/CPF:</b> " + esc(cli.documento) : "") + (cli.endereco ? "<br><b>Endereço:</b> " + esc(cli.endereco) : "") + "</div>" +
       (ch.necessidade ? '<h2 class="sec">Descrição do serviço</h2><div class="desc">' + nl2br(ch.necessidade) + "</div>" : "") +
       '<table><thead><tr><th>Descrição</th><th class="c">Qtd</th><th class="r">Valor unit.</th><th class="r">Total</th></tr></thead><tbody>' +
@@ -773,7 +797,7 @@
     const hoje = new Date().toLocaleDateString("pt-BR");
     return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Lista de compra ' + esc(ch.numero || "") + "</title><style>" + docEstilo(ctx.cor) + "</style></head><body>" +
       docCabecalho(ctx, "Lista de compra — uso interno<br>" + hoje) +
-      "<h1>Lista de materiais para compra" + (ch.numero ? " — Chamado Nº " + esc(ch.numero) : "") + '</h1><div class="meta">' + (cli.nome ? "Cliente: " + esc(cli.nome) : "Sem cliente") + (ch.tipoServico ? " · " + esc(ch.tipoServico) : "") + "</div>" +
+      "<h1>Lista de materiais para compra" + (ch.numero ? " — Chamado Nº " + esc(ch.numero) : "") + '</h1><div class="meta">' + (cli.nome ? "Casa de Oração: " + esc(cli.nome) : "Sem Casa de Oração") + (ch.tipoServico ? " · " + esc(ch.tipoServico) : "") + "</div>" +
       (o.maquinas.length ? '<h2 class="sec">Máquinas do projeto</h2><table><thead><tr><th>Tipo</th><th class="c">Qtd</th><th class="c">Infra</th></tr></thead><tbody>' +
         o.maquinas.map(m => "<tr><td>" + esc(m.tipo) + '</td><td class="c">' + esc(qTxt(nTxt(m.qtd) || 1)) + '×</td><td class="c">' + esc(qTxt(m.metros)) + " m</td></tr>").join("") + "</tbody></table>" : "") +
       '<h2 class="sec">Materiais (somados)</h2><table><thead><tr><th>Item</th><th class="c">Quantidade</th><th class="c">✓</th></tr></thead><tbody>' +
@@ -964,7 +988,7 @@
   function OSDoChamado({ chamado, sessao, aoAbrirNova, aoAbrirOS, versao }) {
     const [lista, setLista] = useState(null);
     const [erro, setErro] = useState("");
-    const liberado = !!K.OS && K.temModulo("os");   /* v1.19.0: módulo OS desligado → quadro some */
+    const liberado = !!K.OS && K.temModulo("os") && K.temPerfil(sessao, "admin", "coord", "tecnico");   /* v1.19.0 · CCB v2: quem só aprova não vê o quadro de OS */
     useEffect(() => {
       if (!liberado) return;
       setErro("");
@@ -986,7 +1010,7 @@
           h("div", { style: { display: "flex", gap: 6 } },
             h("button", { type: "button", className: "bt bt-leve bt-p", onClick: () => aoAbrirOS(o.id) }, "Abrir"),
             h("button", { type: "button", className: "bt bt-leve bt-p", onClick: () => K.OS.relatorioDaOS(o.id, sessao) }, "PDF"),
-            K.OS.enviarRelatorioWhats ? h("button", { type: "button", className: "bt bt-leve bt-p", title: "Mandar o relatório ao cliente pelo WhatsApp", onClick: () => { const w = window.open("", "_blank"); K.OS.enviarRelatorioWhats(o.id, sessao, w); } }, "WhatsApp") : null))));
+            null))));
   }
 
   /* v1.14.0: validade da proposta, contatos feitos e próximo retorno */
@@ -1014,7 +1038,7 @@
     const dia = s => String(s || "").slice(0, 10).split("-").reverse().join("/");
     return h("div", { className: "ch-acomp" },
       h("div", { className: "ch-acomp-cab" },
-        h("b", null, "Acompanhamento da proposta"),
+        h("b", null, "Histórico do chamado"),
         p ? h("span", { className: "ch-prop-s " + p.situacao }, textoProposta(p)) : null,
         c.proximoRetorno && !encerrado ? h("span", { className: "ch-prop-s retorno" }, "Retorno " + dia(c.proximoRetorno)) : null,
         h("span", { style: { flex: 1 } }),
@@ -1023,24 +1047,57 @@
       p ? h("div", { className: "cel-sub" }, "Enviada em " + dia(p.enviadaEm) + " · válida por " + p.validadeDias + " dias, até " + dia(p.venceEm) + ". A proposta vencida só fica sinalizada: o status não muda sozinho.")
         : status === "Aguardando aprovação" ? h("div", { className: "cel-sub" }, "A validade começa a contar quando o chamado tem orçamento salvo e entra em \"Aguardando aprovação\".") : null,
       aberto ? h("div", { className: "ch-acomp-form" },
-        h("textarea", { value: texto, onChange: e => setTexto(e.target.value), rows: 2, placeholder: "O que foi conversado com o cliente (ex.: pediu para retornar depois da reunião de condomínio)" }),
+        h("textarea", { value: texto, onChange: e => setTexto(e.target.value), rows: 2, placeholder: "O que foi conversado com a casa (ex.: o encarregado pediu para voltar depois do culto)" }),
         h("div", { className: "ch-acomp-linha" },
           h("label", null, h("span", null, "Próximo retorno"), h("input", { className: "entrada-texto", type: "date", value: retorno, onChange: e => setRetorno(e.target.value) })),
           h("button", { type: "button", className: "bt bt-marca", disabled: salvando || (!texto.trim() && !retorno), onClick: registrar }, salvando ? "Salvando…" : "Registrar"))) : null,
       lista && lista.length ? h("div", { className: "ch-acomp-lista" }, lista.slice(0, aberto ? 50 : 3).map(a => h("div", { key: a.id },
-        h("span", null, dia(a.criadoEm) + " · " + (a.usuarioNome || "—") + ({ renovacao: " · renovação", envio: " · envio", aprovacao: " · aprovação do cliente", recusa: " · recusa do cliente", visualizacao: " · cliente abriu" }[a.tipo] || "")),
+        h("span", null, dia(a.criadoEm) + " · " + (a.usuarioNome || "—") + ({ renovacao: " · renovação", envio: " · envio", aprovacao: " · aprovação", parecer: " · Segurança do Trabalho", recusa: " · recusa" }[a.tipo] || "")),
         a.texto ? h("p", null, a.texto) : null,
         a.proximoRetorno ? h("small", null, "Retorno marcado para " + dia(a.proximoRetorno)) : null))) : null);
+  }
+
+  /* CCB v2: aprovação por alçada (Coordenação → Gestão → Procurador) e parecer da Segurança do Trabalho */
+  function Aprovacao({ chamado, aoMudar }) {
+    const ap = chamado.aprovacao;
+    const [texto, setTexto] = useState("");
+    const [enviando, setEnviando] = useState(false);
+    if (!ap) return null;
+    const aguardando = chamado.status === "Aguardando aprovação";
+    if (!aguardando && !ap.aprovado && !ap.parecer) return null;
+    async function fazer(acao, extra) {
+      setEnviando(true);
+      try { const c = await api("chamados.aprovacao", Object.assign({ id: chamado.id, acao, texto }, extra || {})); setTexto(""); K.avisar("Registrado."); aoMudar(c); }
+      catch (x) { K.avisar(x.message, true); }
+      setEnviando(false);
+    }
+    const par = ap.parecer;
+    return h("div", { className: "bloco aprovacao" + (aguardando ? " aprov-aguardando" : "") },
+      h("div", { className: "secao-titulo", style: { marginTop: 0 } }, "Aprovação"),
+      h("div", { className: "aprov-linhas" },
+        h("div", null, h("span", { className: "cel-sub" }, "Valor do orçamento"), h("b", null, ap.valor != null ? BRL(ap.valor) : "sem orçamento")),
+        h("div", null, h("span", { className: "cel-sub" }, "Quem aprova"), h("b", null, ap.nivelNome)),
+        ap.exigeSeguranca ? h("div", null, h("span", { className: "cel-sub" }, "Segurança do Trabalho"),
+          h("b", { className: par ? (par.situacao === "favoravel" ? "txt-ok" : "txt-perigo") : "" }, par ? (par.situacao === "favoravel" ? "Parecer favorável" : "Parecer desfavorável") : "Aguardando parecer")) : null),
+      par && par.texto ? h("p", { className: "cel-sub" }, "Parecer de " + par.por + ": " + par.texto) : null,
+      ap.aprovado ? h(Aviso, { tipo: "ok" }, "Aprovado por " + ap.aprovado.por + " (" + ap.aprovado.nivelNome + ") em " + K.dataHora(ap.aprovado.em) + (ap.aprovado.valor != null ? " · " + BRL(ap.aprovado.valor) : "") + ".") : null,
+      aguardando && (ap.podeAprovar || ap.podeReprovar || ap.podeParecer) ? h(React.Fragment, null,
+        h(Campo, { rotulo: "Observação", dica: "Obrigatória para não aprovar ou para parecer desfavorável." }, h("textarea", { rows: 2, value: texto, onChange: e => setTexto(e.target.value) })),
+        h("div", { className: "aprov-botoes" },
+          ap.podeParecer ? h("button", { type: "button", className: "bt", disabled: enviando, onClick: () => fazer("parecer", { situacao: "favoravel" }) }, "Parecer favorável") : null,
+          ap.podeParecer ? h("button", { type: "button", className: "bt bt-perigo", disabled: enviando, onClick: () => fazer("parecer", { situacao: "desfavoravel" }) }, "Parecer desfavorável") : null,
+          ap.podeReprovar ? h("button", { type: "button", className: "bt bt-perigo", disabled: enviando, onClick: () => fazer("reprovar") }, "Não aprovar") : null,
+          ap.podeAprovar ? h("button", { type: "button", className: "bt bt-marca", disabled: enviando, onClick: () => fazer("aprovar") }, "Aprovar") : null))
+      : aguardando ? h("p", { className: "cel-sub" }, ap.exigeSeguranca && !(par && par.situacao === "favoravel") ? "Aguardando o parecer da Segurança do Trabalho e a aprovação de: " + ap.nivelNome + "." : "Aguardando a aprovação de: " + ap.nivelNome + ".") : null);
   }
 
   function FormChamado({ chamado, op, ehAdmin, sessao, aoFechar, aoSalvar, aoExcluir, consulta }) {
     K.useReabrir("chamado", chamado && chamado.id);   /* v1.27.0 */
     if (consulta === undefined) consulta = K.soConsultaCRM(sessao);   /* v1.22.0 */
-    const verFin = K.temModulo("erp") && K.temPerfil(sessao, "admin", "financeiro", "comercial");   /* v1.23.0 */
-    const [finTemParcelas, setFinTemParcelas] = useState(false);
+    const finTemParcelas = false;   /* CCB v2: sem financeiro */
     const novo = !chamado.id;
     const [f, setF] = useState(Object.assign({
-      clienteId: null, clienteNome: "", comQuemFalar: "", status: "Falta enviar orçamento", tipoServico: "", origem: "", necessidade: "",
+      clienteId: null, clienteNome: "", comQuemFalar: "", status: "Falta orçamento", tipoServico: "", origem: "", necessidade: "",
       abertoEm: hojeISO(), fechadoEm: "", andamento: 0, obs: "", responsavelId: null, recebido: "", custo: "",
     }, chamado, { recebido: valTexto(chamado.recebido), custo: valTexto(chamado.custo), fechadoEm: chamado.fechadoEm || "" }));
     const [orc, setOrc] = useState(null);          // estado do orçamento (só admin)
@@ -1092,13 +1149,9 @@
 
     async function salvar(comPdf) {
       setErro("");
-      if (!f.clienteId) return setErro("Escolha o cliente do chamado.");
-      if (ehAdmin && orc) {
-        const soma = orc.pagamentos.reduce((s, p) => s + nTxt(p.pct), 0);
-        if (orc.pagamentos.length && Math.abs(soma - 100) > 0.01) return setErro("As parcelas somam " + qTxt(soma) + "%. Ajuste para fechar 100%.");
-      }
+      if (!f.clienteId) return setErro("Escolha a Casa de Oração do chamado.");
       const w = comPdf ? window.open("", "_blank") : null;   // abre já no clique para o navegador não bloquear
-      if (w) w.document.write("<p style='font-family:sans-serif;padding:20px'>Gerando a proposta…</p>");
+      if (w) w.document.write("<p style='font-family:sans-serif;padding:20px'>Gerando o orçamento…</p>");
       setEnviando(true);
       try {
         const c = await api("chamados.salvar", dadosEnvio());
@@ -1108,7 +1161,6 @@
           escreverJanela(w, propostaHTML(c, orcInicial(c.orcamento, cfg), cli, ctxDoc()));
         }
         K.avisar(novo ? "Chamado " + c.numero + " aberto." : "Chamado " + c.numero + " salvo.");
-        if (c.linkAberto && c.orcamento) atualizarLinkProposta(c.id, sessao);   /* v1.21.0 */
         aoSalvar(c);
       } catch (x) { if (w) w.close(); setErro(x.message); setEnviando(false); }
     }
@@ -1116,7 +1168,7 @@
     /* v1.18.0: salva o chamado e manda a proposta pelo WhatsApp */
     async function salvarEWhats() {
       setErro("");
-      if (!f.clienteId) return setErro("Escolha o cliente do chamado.");
+      if (!f.clienteId) return setErro("Escolha a Casa de Oração do chamado.");
       const soma = orc.pagamentos.reduce((s, p) => s + nTxt(p.pct), 0);
       if (orc.pagamentos.length && Math.abs(soma - 100) > 0.01) return setErro("As parcelas somam " + qTxt(soma) + "%. Ajuste para fechar 100%.");
       const w = window.open("", "_blank");   // abre já no clique para o navegador não bloquear
@@ -1138,8 +1190,6 @@
     rodape.push(h("button", { key: "c", className: "bt", onClick: aoFechar }, "Cancelar"));
     if (ehAdmin && orc && orc.materiais.length) rodape.push(h("button", { key: "l", className: "bt", onClick: listaCompra }, "Lista de compra"));
     if (ehAdmin && orc) rodape.push(h("button", { key: "p", className: "bt", onClick: () => salvar(true), disabled: enviando }, "Salvar e gerar PDF"));
-    if (!novo) rodape.push(h("button", { key: "cz", className: "bt", onClick: () => conversarZap(Object.assign({}, chamado, { comQuemFalar: f.comQuemFalar || chamado.comQuemFalar }), sessao), title: "Abrir a conversa com o cliente" }, "Conversar"));   /* v1.19.0 */
-    if (ehAdmin && orc && orcTotais(orc).temItens) rodape.push(h("button", { key: "w", className: "bt bt-zap", onClick: salvarEWhats, disabled: enviando }, "Enviar proposta"));   /* v1.18.0 */
     rodape.push(h("button", { key: "s", className: "bt bt-marca", onClick: () => salvar(false), disabled: enviando || carga === "carregando" }, enviando ? "Salvando…" : novo ? "Abrir chamado" : "Salvar chamado"));
     if (consulta) { rodape.length = 0; rodape.push(h("button", { key: "f", className: "bt bt-marca", onClick: aoFechar }, "Fechar")); }   /* v1.22.0: só consulta */
 
@@ -1155,15 +1205,12 @@
       aoFechar, rodape,
     },
       h(Aviso, null, erro),
-      !novo && ehAdmin ? h(PropostaOnline, { chamado }) : null,   /* v1.18.0 */
+      !novo ? h(Aprovacao, { chamado, aoMudar: c => aoSalvar(c, true) }) : null,
       !novo ? h(AcompProposta, { chamado, status: f.status }) : null,
-      !novo && verFin ? h(FinanceiroDoChamado, { chamado, aoInfo: setFinTemParcelas, sessao }) : null,   /* v1.23.0 */
-      /* v1.15.0: proposta de contrato segue no módulo Contratos */
-      !novo && f.tipoServico === "Proposta de contrato" && K.Contratos ? h(K.Contratos.DoChamado, { chamado, aoFechar }) : null,
       !novo ? h(OSDoChamado, { chamado: Object.assign({}, chamado, { status: f.status }), sessao, versao: osVersao,
         aoAbrirNova: () => abrirOS({ nova: true }), aoAbrirOS: id => abrirOS({ id }) }) : null,
-      h("div", { className: "campo" }, h("span", null, "Cliente"), h(EscolheCliente, { valor: f.clienteId, rotulo: f.clienteNome,
-        aoEscolher: c => setF(p => Object.assign({}, p, { clienteId: c.id, clienteNome: c.nome, comQuemFalar: p.comQuemFalar || c.contato || "", origem: p.origem || c.origem || "" })) })),
+      h("div", { className: "campo" }, h("span", null, "Casa de Oração"), h(EscolheCliente, { valor: f.clienteId, rotulo: f.clienteNome,
+        aoEscolher: c => setF(p => Object.assign({}, p, { clienteId: c.id, clienteNome: c.nome, comQuemFalar: p.comQuemFalar || c.contato || "" })) })),
       h("div", { className: "linha-campos" },
         h(Campo, { rotulo: "Status" },
           h("select", { value: f.status, onChange: e => mudar("status")(e.target.value) }, op.status.map(s => h("option", { key: s.nome, value: s.nome }, s.nome)))),
@@ -1179,8 +1226,8 @@
             h("option", { value: "" }, "—"), op.responsaveis.map(r => h("option", { key: r.id, value: r.id }, r.nome)))),
         h(Campo, { rotulo: "Aberto em" }, h(Texto, { valor: f.abertoEm, aoMudar: mudar("abertoEm"), type: "date" })),
         final ? h(Campo, { rotulo: "Fechado em" }, h(Texto, { valor: f.fechadoEm, aoMudar: mudar("fechadoEm"), type: "date" })) : null),
-      h(Campo, { rotulo: "Descrição do serviço", dica: "Sai na proposta." }, h("textarea", { value: f.necessidade || "", onChange: e => mudar("necessidade")(e.target.value) })),
-      h(Campo, { rotulo: "Observação interna", dica: "Não sai na proposta." }, h("textarea", { value: f.obs || "", onChange: e => mudar("obs")(e.target.value) })),
+      h(Campo, { rotulo: "Descrição do problema e do serviço a executar", dica: "O que a casa relatou e o que vai ser feito. Sai no orçamento e na OS." }, h("textarea", { value: f.necessidade || "", onChange: e => mudar("necessidade")(e.target.value) })),
+      h(Campo, { rotulo: "Observação interna", dica: "Não sai no orçamento." }, h("textarea", { value: f.obs || "", onChange: e => mudar("obs")(e.target.value) })),
       ehAdmin ? (carga !== "ok" ? h("div", { className: "vazio" }, carga === "carregando" ? "Carregando orçamento…" : h(Aviso, null, carga))
         : h(Orcamento, { orc, setOrc, cat, f, mudar, recebidoTravado: finTemParcelas })) : null);
   }
@@ -1278,78 +1325,24 @@
       : h("p", { className: "cel-sub" }, "Nenhum serviço lançado."),
       h("button", { type: "button", className: "bt bt-p", onClick: () => set("servicos", orc.servicos.concat([{ nome: "", qtd: "1", unit: "" }])) }, "+ Serviço"),
 
-      /* pesquisa de materiais */
-      h("div", { className: "secao-titulo" }, "Pesquisa de materiais"),
-      h("p", { className: "cel-sub", style: { marginTop: -6 } }, "Lance as máquinas com os metros de infra (total do tipo) e a quantidade. Tubulação em kg pelo fator, isolamento em metros, cabo = metros + 2 m por máquina, fita = metros ÷ 3."),
-      orc.maquinas.length ? h("div", { className: "orc-servs" }, orc.maquinas.map((m, i) => h("div", { key: i, className: "orc-serv orc-maq" },
-        h("label", { className: "orc-serv-nome" }, h("span", null, "Tipo de máquina"), h("select", { className: "entrada-texto", value: m.tipo, onChange: e => linha("maquinas", i, "tipo", e.target.value) },
-          maquinas.map(k => h("option", { key: k.id, value: k.nome }, k.nome)),
-          m.tipo && !maquinas.some(k => k.nome === m.tipo) ? h("option", { value: m.tipo }, m.tipo + " (fora do catálogo)") : null)),
-        h("label", { className: "orc-serv-q" }, h("span", null, "Qtd de máquinas"), ent(m.qtd, v => linha("maquinas", i, "qtd", v), { inputMode: "numeric" })),
-        h("label", { className: "orc-serv-v" }, h("span", null, "Metros de infra (total)"), ent(m.metros, v => linha("maquinas", i, "metros", v), { inputMode: "decimal" })),
-        h("button", { type: "button", className: "bt bt-leve bt-p bt-perigo orc-serv-x", onClick: () => tirar("maquinas", i), "aria-label": "Remover máquina" }, "×"))))
-      : h("p", { className: "cel-sub" }, maquinas.length ? "Nenhuma máquina lançada." : "Cadastre os tipos de máquina em Catálogo e preços."),
-      h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
-        h("button", { type: "button", className: "bt bt-p", disabled: !maquinas.length, onClick: () => set("maquinas", orc.maquinas.concat([{ tipo: maquinas[0] ? maquinas[0].nome : "", metros: "", qtd: "1" }])) }, "+ Máquina"),
-        h("button", { type: "button", className: "bt bt-p bt-marca", disabled: !orc.maquinas.length, onClick: gerar }, "Gerar materiais")),
-      avisos.length ? h(Aviso, { tipo: "info" }, avisos.join(" ")) : null,
-
       /* materiais */
-      h("div", { className: "secao-titulo" }, "Materiais (somados +" + qTxt(orc.markup) + "%)"),
+      h("div", { className: "secao-titulo" }, "Materiais"),
       orc.materiais.length ? h("div", { className: "orc-servs" }, orc.materiais.map((r, i) => h("div", { key: i, className: "orc-serv" },
         h("div", { className: "orc-serv-nome" }, h(EscolheServico, { valor: r.nome, servicos: matCat, aoMudar: v => nomeMaterial(i, v), foco: !r.nome && i === orc.materiais.length - 1, rotulo: "Material", vazio: "Catálogo de materiais vazio." })),
         h("label", { className: "orc-serv-q" }, h("span", null, "Qtd" + (r.un ? " (" + r.un + ")" : "")), ent(r.qtd, v => linha("materiais", i, "qtd", v), { inputMode: "decimal" })),
         h("label", { className: "orc-serv-v" }, h("span", null, "Valor unit. (R$)"), ent(r.unit, v => linha("materiais", i, "unit", v), { inputMode: "decimal" })),
         h("div", { className: "orc-serv-t" }, h("span", null, "Total"), h("b", null, BRL(nTxt(r.qtd) * nTxt(r.unit)))),
         h("button", { type: "button", className: "bt bt-leve bt-p bt-perigo orc-serv-x", onClick: () => tirar("materiais", i), "aria-label": "Remover material" }, "×"))))
-      : h("p", { className: "cel-sub" }, "Nenhum material. Use Gerar materiais ou adicione à mão."),
+      : h("p", { className: "cel-sub" }, "Nenhum material lançado."),
       h("button", { type: "button", className: "bt bt-p", onClick: () => set("materiais", orc.materiais.concat([{ nome: "", qtd: "1", unit: "", un: "un" }])) }, "+ Material"),
-      opcionais.length ? h(React.Fragment, null,
-        h("div", { className: "secao-titulo" }, "Itens opcionais"),
-        h("div", { className: "chips" }, opcionais.map(m => h("button", { type: "button", key: m.id, className: "chip" + (opcAtivo(m) ? " ativo" : ""), onClick: () => alternarOpcional(m), "aria-pressed": opcAtivo(m) },
-          (opcAtivo(m) ? "✓ " : "+ ") + m.nome, h("span", { className: "chip-n" }, BRL(m.custo)))))) : null,
-
       /* totais */
       h("div", { className: "secao-titulo" }, "Valores"),
       h("div", { className: "orc-totais" },
-        h("div", { className: "orc-ajustes" },
-          h("label", { className: "check" }, h("input", { type: "checkbox", checked: orc.imposto.on, onChange: e => set("imposto", Object.assign({}, orc.imposto, { on: e.target.checked })) }), "Imposto (com nota)",
-            ent(orc.imposto.pct, v => set("imposto", Object.assign({}, orc.imposto, { pct: v })), { className: "entrada-texto curto", inputMode: "decimal", disabled: !orc.imposto.on, "aria-label": "Imposto %" }), "%"),
-          h("label", { className: "check" }, h("input", { type: "checkbox", checked: orc.rt.on, onChange: e => set("rt", Object.assign({}, orc.rt, { on: e.target.checked })) }), "RT",
-            ent(orc.rt.pct, v => set("rt", Object.assign({}, orc.rt, { pct: v })), { className: "entrada-texto curto", inputMode: "decimal", disabled: !orc.rt.on, "aria-label": "RT %" }), "%"),
-          h("div", { className: "check" }, "Desconto",
-            h("select", { className: "entrada-texto curto", value: orc.desconto.tipo, onChange: e => set("desconto", Object.assign({}, orc.desconto, { tipo: e.target.value })), "aria-label": "Tipo de desconto" },
-              h("option", { value: "valor" }, "R$"), h("option", { value: "pct" }, "%")),
-            ent(orc.desconto.valor, v => set("desconto", Object.assign({}, orc.desconto, { valor: v })), { className: "entrada-texto medio", inputMode: "decimal", placeholder: "0", "aria-label": "Desconto" }))),
         h("div", { className: "orc-resumo" },
           h("div", null, h("span", null, "Mão de obra"), h("b", null, BRL(t.mdo))),
-          h("div", null, h("span", null, "Materiais +" + qTxt(orc.markup) + "%"), h("b", null, BRL(t.mat))),
-          h("div", null, h("span", null, "Base"), h("b", null, BRL(t.base))),
-          orc.imposto.on ? h("div", null, h("span", null, "Imposto (" + qTxt(orc.imposto.pct) + "%)"), h("b", null, BRL(t.imposto))) : null,
-          orc.rt.on ? h("div", null, h("span", null, "RT (" + qTxt(orc.rt.pct) + "%)"), h("b", null, BRL(t.rt))) : null,
-          t.desconto > 0 ? h("div", null, h("span", null, "Desconto"), h("b", null, "− " + BRL(t.desconto))) : null,
-          h("div", { className: "orc-final" }, h("span", null, "Valor do orçamento"), h("b", null, BRL(t.total))))),
-      h("p", { className: "cel-sub" }, "Na proposta, imposto e RT ficam diluídos nos itens: o cliente vê só os preços finais."),
+          h("div", null, h("span", null, "Materiais"), h("b", null, BRL(t.mat))),
+          h("div", { className: "orc-final" }, h("span", null, "Valor do orçamento"), h("b", null, BRL(t.total))))));
 
-      /* parcelas */
-      h("div", { className: "secao-titulo" }, "Forma de pagamento"),
-      h("div", { className: "tabela-caixa" }, h("table", { className: "tabela orc-tab" },
-        h("thead", null, h("tr", null, h("th", null, "Descrição"), h("th", { className: "num" }, "%"), h("th", { className: "num" }, "Valor"), h("th"))),
-        h("tbody", null, orc.pagamentos.map((p, i) => h("tr", { key: i },
-          h("td", null, ent(p.descricao, v => linha("pagamentos", i, "descricao", v))),
-          h("td", { className: "num" }, ent(p.pct, v => linha("pagamentos", i, "pct", v), { inputMode: "decimal", className: "entrada-texto curto" })),
-          h("td", { className: "num" }, BRL(t.total * nTxt(p.pct) / 100)),
-          h("td", { className: "acoes" }, h("button", { type: "button", className: "bt bt-leve bt-p bt-perigo", onClick: () => tirar("pagamentos", i), "aria-label": "Remover parcela" }, "×"))))))),
-      h("div", { style: { display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" } },
-        h("button", { type: "button", className: "bt bt-p", onClick: () => set("pagamentos", orc.pagamentos.concat([{ descricao: "", pct: "" }])) }, "+ Parcela"),
-        h("span", { className: "cel-sub", style: { color: orc.pagamentos.length && Math.abs(somaPct - 100) > 0.01 ? "var(--perigo)" : undefined } }, "Soma: " + qTxt(somaPct) + "%")),
-
-      h("div", { className: "secao-titulo" }, "Recebimento"),
-      h("div", { className: "linha-campos" },
-        recebidoTravado   /* v1.23.0: com parcelas no Financeiro, o recebido vem das baixas */
-          ? h(Campo, { rotulo: "Recebido (R$)", dica: "Vem do Financeiro (baixas das parcelas)." }, h(Texto, { valor: f.recebido, aoMudar: () => {}, readOnly: true, disabled: true }))
-          : h(Campo, { rotulo: "Recebido (R$)" }, h(Texto, { valor: f.recebido, aoMudar: mudar("recebido"), inputMode: "decimal", placeholder: "0,00" })),
-        h(Campo, { rotulo: "Custo real (R$)", dica: "Opcional, para a margem." }, h(Texto, { valor: f.custo, aoMudar: mudar("custo"), inputMode: "decimal", placeholder: "0,00" }))));
   }
 
   /* =================================================================
@@ -1547,10 +1540,10 @@
   }
 
   K.modulos = K.modulos || {};
-  K.modulos.clientes = { titulo: "Clientes", icone: "empresas", perfis: ["admin", "comercial", "financeiro", "coord"], grupo: "CRM", Tela: Clientes };
+  K.modulos.clientes = { titulo: "Casas de Oração", icone: "empresas", perfis: ["admin", "coord", "gestao", "procurador", "seguranca"], grupo: "Manutenção", Tela: Clientes };
   K.CRM = { FormChamado, EscolheCliente,   /* usado pela tela Início */
     /* v1.15.0: peças reaproveitadas pelo módulo de Contratos (contratos.js) */
     useEstreito, ctxDocDe, docEstilo, docCabecalho, escreverJanela, esc, nl2br, dataBR, hojeISO, BRL };
-  K.modulos.chamados = { titulo: "Chamados", icone: "crm", perfis: ["admin", "comercial", "financeiro", "coord"], grupo: "CRM", Tela: Chamados };
-  K.modulos.catalogo = { titulo: "Catálogo e preços", icone: "etiqueta", perfis: ["admin", "comercial"], grupo: "CRM", Tela: Catalogo };
+  K.modulos.chamados = { titulo: "Chamados", icone: "crm", perfis: ["admin", "coord", "gestao", "procurador", "seguranca"], grupo: "Manutenção", Tela: Chamados };
+  K.modulos.catalogo = { titulo: "Catálogo e preços", icone: "etiqueta", perfis: ["admin", "coord"], grupo: "Manutenção", Tela: Catalogo };
 })();

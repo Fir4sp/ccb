@@ -46,7 +46,7 @@
       h("p", null, erro), h("button", { className: "bt", onClick: verificar }, "Tentar de novo")));
     else if (sessao === undefined) tela = h("div", { className: "carregando" }, "Carregando…");
     else if (sessao === null) tela = h(React.Fragment, null, h(K.Entrada, { aoEntrar: s => { if (location.hash === "#/entrar") history.replaceState(null, "", location.pathname + location.search); setSessao(s); } }),
-      h("a", { href: LANDING, className: "entrada-conhecer" }, "Ainda não tem acesso? Conheça o SGClim"));
+      null);   /* CCB v2: sem página de apresentação */
     else if (sessao.trocarSenha) tela = h(K.TrocaObrigatoria, { sessao, aoSair: sair, aoConcluir: () => setSessao(Object.assign({}, sessao, { trocarSenha: false })) });
     else if (sessao.termosPendentes && K.AceiteTermos) tela = h(K.AceiteTermos, { sessao, aoSair: sair, aoAceitar: setSessao });   /* v1.14.0 */
     else tela = h(K.App, { sessao, setSessao, aoSair: sair });

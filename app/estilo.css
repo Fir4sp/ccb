@@ -2086,3 +2086,12 @@ html[data-tema="escuro"] .in-quando.atrasada { color: #ff7a7a; }
 .os-pmoc-txt span { color: var(--texto-2, #555); font-size: .92em; }
 .os-pmoc-txt small { color: var(--texto-3, #777); }
 .pm-mapa { margin: 6px 0 10px; }
+
+/* CCB v2 — quadro de aprovação do chamado */
+.aprovacao { padding: 14px 16px; margin-bottom: 14px; }
+.aprovacao.aprov-aguardando { border-left: 4px solid var(--marca, #1d4ed8); }
+.aprov-linhas { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 8px; }
+.aprov-linhas > div { display: flex; flex-direction: column; gap: 2px; }
+.aprov-botoes { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.txt-ok { color: var(--ok, #15803d); }
+.txt-perigo { color: var(--perigo, #b91c1c); }

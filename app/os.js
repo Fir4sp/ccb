@@ -139,7 +139,7 @@
         }))) : null,
 
       h("div", { className: "barra" },
-        h("input", { className: "entrada-texto busca", placeholder: "Buscar por nº da OS ou cliente", value: busca, onChange: e => setBusca(e.target.value), "aria-label": "Buscar OS" }),
+        h("input", { className: "entrada-texto busca", placeholder: "Buscar por nº da OS ou Casa de Oração", value: busca, onChange: e => setBusca(e.target.value), "aria-label": "Buscar OS" }),
         h("select", { className: "entrada-texto", value: grupo, onChange: e => setGrupo(e.target.value), "aria-label": "Filtrar" },
           h("option", { value: "abertas" }, "Em aberto"), h("option", { value: "" }, "Todas"),
           h("option", { value: "agendadas" }, "Agendadas"), h("option", { value: "execucao" }, "Em execução"), h("option", { value: "pendencia" }, "Com pendência"),
@@ -154,7 +154,7 @@
       : !lista.dados ? h("div", { className: "bloco vazio" }, "Carregando…")
       : !itens.length ? h("div", { className: "bloco vazio" }, h("strong", null, "Nenhuma OS aqui."), ehEscritorio ? "Crie a primeira pelo botão Nova OS, a partir de um chamado aprovado." : "")
       : vis === "lista" ? h("div", { className: "bloco" }, h("div", { className: "tabela-caixa", style: { opacity: lista.carregando ? .6 : 1 } }, h("table", { className: "tabela os-tab" },
-          h("thead", null, h("tr", null, h("th", null, "Nº"), h("th", null, "Cliente"), h("th", null, "Serviço"), h("th", null, "Previsão"), h("th", null, "Equipe"), h("th", null, "Progresso"), h("th", null, "Status"))),
+          h("thead", null, h("tr", null, h("th", null, "Nº"), h("th", null, "Casa de Oração"), h("th", null, "Serviço"), h("th", null, "Previsão"), h("th", null, "Equipe"), h("th", null, "Progresso"), h("th", null, "Status"))),
           h("tbody", null, itens.map(o => {
             const eq = (o.tecnicos || []).length ? o.tecnicos : (o.executores || []);
             return h("tr", { key: o.id, className: "os-lin", onClick: () => setAberta(o.id), tabIndex: 0, onKeyDown: e => { if (e.key === "Enter") setAberta(o.id); } },
@@ -205,7 +205,7 @@
       h("span", null, h("b", null, "Chamado " + valor.numero), " · " + valor.clienteNome + (valor.tipoServico ? " · " + valor.tipoServico : "")),
       h("button", { type: "button", className: "bt bt-leve bt-p", onClick: () => { setTexto(""); setAberto(true); } }, "Trocar"));
     return h("div", { className: "escolhe" },
-      h("input", { className: "entrada-texto", autoFocus: true, placeholder: "Nº do chamado ou nome do cliente", value: texto, onChange: e => setTexto(e.target.value), onFocus: () => setAberto(true) }),
+      h("input", { className: "entrada-texto", autoFocus: true, placeholder: "Nº do chamado ou nome da Casa de Oração", value: texto, onChange: e => setTexto(e.target.value), onFocus: () => setAberto(true) }),
       aberto ? h("div", { className: "escolhe-lista" },
         itens.length ? itens.map(c => h("button", { type: "button", key: c.id, onClick: () => { aoEscolher(c); setAberto(false); } },
           h("b", null, c.numero + " · " + c.clienteNome), h("span", null, (c.tipoServico || "—") + " · " + c.status)))
@@ -219,7 +219,7 @@
     const outro = !f.usarCliente;
     return h("div", { className: "campo" }, h("span", null, "Endereço do serviço"),
       h("div", { className: "chips", style: { marginBottom: 8 } },
-        h("button", { type: "button", className: "chip" + (!outro ? " ativo" : ""), "aria-pressed": !outro, onClick: () => mudar("usarCliente")(true) }, (!outro ? "✓ " : "") + "Endereço do cliente"),
+        h("button", { type: "button", className: "chip" + (!outro ? " ativo" : ""), "aria-pressed": !outro, onClick: () => mudar("usarCliente")(true) }, (!outro ? "✓ " : "") + "Endereço da Casa de Oração"),
         h("button", { type: "button", className: "chip" + (outro ? " ativo" : ""), "aria-pressed": outro, onClick: () => mudar("usarCliente")(false) }, (outro ? "✓ " : "") + "Outro endereço")),
       outro ? h(Texto, { valor: f.endereco, aoMudar: mudar("endereco"), placeholder: "Rua, número, bairro, cidade" })
             : h("div", { className: "os-end-cli" }, endCliente || "O cliente não tem endereço no cadastro. Escolha \"Outro endereço\"."));
@@ -231,7 +231,7 @@
     return r;
   }
   function validaEndereco(f, endCliente) {
-    if (endCliente != null && !f.usarCliente && !String(f.endereco || "").trim()) return "Informe o outro endereço ou marque o endereço do cliente.";
+    if (endCliente != null && !f.usarCliente && !String(f.endereco || "").trim()) return "Informe o outro endereço ou marque o endereço da Casa de Oração.";
     return "";
   }
 
@@ -256,11 +256,11 @@
             onClick: () => mudar("tecnicos")(on ? f.tecnicos.filter(x => x !== u.id) : f.tecnicos.concat([u.id])) }, (on ? "✓ " : "") + u.nome);
         }))),
       /* v1.27.4: o que foi acordado com o cliente (descrição do serviço do chamado) fica à vista, antes das orientações */
-      descricao != null ? h("div", { className: "campo" }, h("span", null, "Descrição do serviço (enviada ao cliente)"),
+      descricao != null ? h("div", { className: "campo" }, h("span", null, "Descrição do serviço (vem do chamado)"),
         h("div", { className: "os-desc" }, descricao.trim() ? descricao : "O chamado não tem descrição do serviço."),
         h("small", null, "Vem do chamado e sai no relatório. Para mudar, altere o chamado.")) : null,
-      semChamado ? h(Campo, { rotulo: "Descrição do serviço", dica: "OS sem chamado: este texto sai no relatório do cliente." }, h("textarea", { value: f.orientacoes || "", onChange: e => mudar("orientacoes")(e.target.value) }))
-        : h(Campo, { rotulo: "Orientações para a equipe", dica: "Uso interno da equipe: não sai no relatório do cliente." }, h("textarea", { value: f.orientacoes || "", onChange: e => mudar("orientacoes")(e.target.value) })));
+      semChamado ? h(Campo, { rotulo: "Descrição do serviço", dica: "OS sem chamado: este texto sai no relatório." }, h("textarea", { value: f.orientacoes || "", onChange: e => mudar("orientacoes")(e.target.value) }))
+        : h(Campo, { rotulo: "Orientações para a equipe", dica: "Uso interno da equipe: não sai no relatório." }, h("textarea", { value: f.orientacoes || "", onChange: e => mudar("orientacoes")(e.target.value) })));
   }
 
   function NovaOS({ op, chamado, aoFechar, aoCriar }) {
@@ -483,12 +483,12 @@
         h("div", null, h("b", null, o.fotos.length), h("span", null, "fotos")),
         h("div", null, h("b", { className: o.pendenciasAbertas ? "atrasada" : "" }, o.pendenciasAbertas), h("span", null, "pendências")),
         h("div", null, h("b", null, o.materiais.length), h("span", null, "materiais"))),
-      h(Campo, { rotulo: "Conclusão do serviço (obrigatória)", dica: "O que foi entregue, como ficou, recomendações ao cliente." },
+      h(Campo, { rotulo: "Conclusão do serviço (obrigatória)", dica: "O que foi feito, como ficou, recomendações à Casa de Oração." },
         h("textarea", { rows: 4, value: conc, onChange: e => setConc(e.target.value) })),
       h("div", { className: "os-assinaturas" },
         h(BlocoAssinatura, { o, quem: "tecnico", sessao, aoSalvar }),
         h(BlocoAssinatura, { o, quem: "cliente", sessao, aoSalvar })),
-      !o.assinaturas.cliente ? h("label", { className: "check" }, h("input", { type: "checkbox", checked: ausente, onChange: e => setAusente(e.target.checked) }), "Cliente ausente (finalizar sem a assinatura dele)") : null,
+      !o.assinaturas.cliente ? h("label", { className: "check" }, h("input", { type: "checkbox", checked: ausente, onChange: e => setAusente(e.target.checked) }), "Responsável da casa ausente (finalizar sem a assinatura)") : null,
       o.finalizadoEm ? h(Aviso, { tipo: "ok" }, "Serviço finalizado em " + K.dataHora(o.finalizadoEm) + ". " + (o.status === "Serviço finalizado" ? "Aguardando o escritório faturar e concluir." : "")) : null,
       h("div", { style: { display: "flex", justifyContent: "flex-end" } },
         h("button", { type: "button", className: "bt bt-marca", disabled: enviando || !conc.trim() || o.status === "Concluída" || o.status === "Cancelada", onClick: finalizar },
@@ -535,7 +535,7 @@
         [emp.razao_social, emp.cnpj ? "CNPJ " + emp.cnpj : "", emp.endereco, [emp.telefone, emp.email].filter(Boolean).join(" · ")].filter(Boolean).map(es).join("<br>") + "</div></div>" +
       "<h1>Relatório de Ordem de Serviço Nº " + es(o.numero) + "</h1>" +
       '<div class="grid">' +
-        "<div><span>Cliente:</span> <b>" + es(o.clienteNome) + "</b></div><div><span>Data:</span> " + es(dataServ) + "</div>" +
+        "<div><span>Casa de Oração:</span> <b>" + es(o.clienteNome) + "</b></div><div><span>Data:</span> " + es(dataServ) + "</div>" +
         "<div><span>Local:</span> " + es(o.endereco || "—") + "</div><div><span>Horário:</span> " + es(horario) + "</div>" +
         "<div><span>Contato:</span> " + es(o.contato || "—") + "</div><div><span>Equipe:</span> " + es(equipeDe(o) || "—") + "</div>" +
         (o.equipamento ? '<div style="grid-column:1/-1"><span>Equipamento:</span> <b>' + es(o.equipamento.tag + (o.equipLocal ? " · " + o.equipLocal : "")) + "</b>" +
@@ -633,7 +633,6 @@
       sub: (o.tipoServico || "—") + (o.chamadoNumero ? " · chamado " + o.chamadoNumero : ""),
       rodape: [ehEscritorio ? h("button", { key: "x", className: "bt bt-leve bt-perigo", onClick: excluir }, "Excluir OS") : null, h("div", { key: "esp", style: { flex: 1 } }),
                h("button", { key: "r", className: "bt", onClick: () => abrirRelatorio(o, sessao) }, "Relatório PDF"),
-               ehEscritorio ? h("button", { key: "z", className: "bt bt-zap", title: "Manda o link do relatório para o cliente", onClick: () => { const w = window.open("", "_blank"); enviarRelatorioWhats(o, sessao, w); } }, "WhatsApp") : null,   /* v1.19.0 */
                ehEscritorio ? h("button", { key: "e", className: "bt", onClick: () => setEditando(true) }, "✎ Editar") : null,
                h("button", { key: "f", className: "bt bt-marca", onClick: aoFechar }, "Fechar")],
     },
@@ -673,7 +672,7 @@
         o.telefone ? h("a", { className: "bt", href: "tel:" + String(o.telefone).replace(/[^\d+]/g, "") }, "📞 Ligar") : null) : null,
       /* v1.27.4: primeiro o que foi acordado com o cliente (vai no relatório); abaixo as orientações internas (não vão) */
       o.chamadoId ? h("div", { className: "os-desc-bloco" },
-        h("b", null, "Descrição do serviço"), h("small", null, " · enviada ao cliente no chamado " + o.chamadoNumero),
+        h("b", null, "Descrição do serviço"), h("small", null, " · do chamado " + o.chamadoNumero),
         h("div", { className: "os-desc" }, (o.chamadoDescricao || "").trim() ? o.chamadoDescricao : "O chamado não tem descrição do serviço.")) : null,
       o.chamadoId ? (o.orientacoes ? h("div", { className: "os-orient" }, h("b", null, "Orientações para a equipe: "), o.orientacoes, h("div", { className: "cel-sub" }, "Uso interno: não sai no relatório.")) : null)
         : (o.orientacoes ? h("div", { className: "os-desc-bloco" }, h("b", null, "Descrição do serviço"), h("div", { className: "os-desc" }, o.orientacoes)) : null),
@@ -741,7 +740,7 @@
         h("button", { type: "button", className: "bt bt-p", disabled: ocupado || !mat.material.trim(), onClick: async () => { if (await acao("os.material.criar", Object.assign({ osId: o.id }, mat))) setMat({ material: "", quantidade: "", unidade: "un" }); } }, "Adicionar")),
 
       /* diário */
-      h("div", { className: "secao-titulo" }, "Diário"), h("p", { className: "cel-sub", style: { marginTop: -6 } }, "Uso interno: não sai no relatório do cliente. No relatório vai a conclusão do serviço."),
+      h("div", { className: "secao-titulo" }, "Diário"), h("p", { className: "cel-sub", style: { marginTop: -6 } }, "Uso interno: não sai no relatório. No relatório vai a conclusão do serviço."),
       h("div", { className: "os-add" },
         h("textarea", { className: "entrada-texto", rows: 2, placeholder: "Registro do dia (o que foi feito, o que encontrou…)", value: diario, onChange: e => setDiario(e.target.value) }),
         h("button", { type: "button", className: "bt bt-p", disabled: ocupado || !diario.trim(), onClick: async () => { if (await acao("os.evento.criar", { osId: o.id, texto: diario }, "Registrado no diário.")) setDiario(""); } }, "Registrar")),
@@ -823,7 +822,7 @@
       sub: "O número da OS não muda. O resto pode ser alterado.",
       rodape: [h("button", { key: "c", className: "bt", onClick: aoFechar }, "Cancelar"), h("button", { key: "s", className: "bt bt-marca", onClick: salvar, disabled: enviando }, enviando ? "Salvando…" : "Salvar")] },
       h(Aviso, null, erro),
-      K.CRM && K.CRM.EscolheCliente ? h("div", { className: "campo" }, h("span", null, "Cliente / local do serviço"),
+      K.CRM && K.CRM.EscolheCliente ? h("div", { className: "campo" }, h("span", null, "Casa de Oração / local do serviço"),
         h(K.CRM.EscolheCliente, { valor: cli.id, rotulo: cli.nome, aoEscolher: trocarCliente }),
         h("small", null, "Pode ser a filial onde o serviço é feito." + (o.chamadoNumero ? " A cobrança continua no cliente do chamado " + o.chamadoNumero + "." : ""))) : null,
       /* v1.28.0: equipamento (apartamento / máquina) — é ele que liga a OS ao histórico do equipamento */

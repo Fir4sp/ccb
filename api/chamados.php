@@ -10,29 +10,90 @@
             secreto no link, enviada pelo WhatsApp; registra visualização e aprovação do cliente.
    Admin vê e edita valores; coordenação opera sem ver valores; técnico não acessa. */
 if (!defined('KSAAS')) { http_response_code(403); exit; }
-require_once dirname(__DIR__) . '/nucleo/fin_chamados.php';   /* v1.23.0: chamado ganho → parcelas a receber */
 
 date_default_timezone_set('America/Sao_Paulo');   // v1.12.0: "mês atual" e datas de ganho no horário de Brasília
 
 const CH_POR_PAGINA = 50;
 
-/* os 8 status do painel, com a categoria usada no dashboard */
+/* CCB v2: status do chamado, com a categoria usada nos indicadores.
+   Falta orçamento → Aguardando aprovação → Aprovado (por alçada) → Em Andamento (OS) → Concluído · ou Não Aprovado / Cancelado */
 const CH_STATUS = [
-    'Falta enviar orçamento' => 'aberto',
+    'Falta orçamento'        => 'aberto',
     'Aguardando aprovação'   => 'aberto',
     'Aprovado'               => 'ganho',
     'Em Andamento'           => 'ganho',
-    'Aguardando 2ª etapa'    => 'ganho',
-    'Falta pagamento'        => 'ganho',
     'Concluído'              => 'ganho',
     'Não Aprovado'           => 'perdido',
+    'Cancelado'              => 'perdido',
 ];
 /* status que encerram o chamado: grava a data real de fechamento (ciclo) */
-const CH_FINAIS = ['Concluído', 'Não Aprovado'];
+const CH_FINAIS = ['Concluído', 'Não Aprovado', 'Cancelado'];
 
-const CH_TIPOS   = ['Desinstalação de máquina', 'Garantia', 'Instalação de máquina', 'Manutenção corretiva',
-                    'Manutenção preventiva', 'Proposta de contrato', 'Serviço em duto'];
-const CH_ORIGENS = ['Pesquisa google', 'Indicação', 'Evento', 'Instagram', 'Linkedin', 'Facebook', 'Dep. Comercial'];
+/* tipos de serviço do CCB (a Coordenação muda em Configurações › Chamados); seguranca = exige parecer da Segurança do Trabalho */
+const CH_TIPOS_PADRAO = [
+    ['nome' => 'Elétrica', 'seguranca' => true], ['nome' => 'Hidráulica e esgoto', 'seguranca' => false],
+    ['nome' => 'Civil (paredes, piso, pintura)', 'seguranca' => false], ['nome' => 'Telhado, forro e calhas', 'seguranca' => true],
+    ['nome' => 'Ar-condicionado e ventiladores', 'seguranca' => false], ['nome' => 'Portas, janelas e fechaduras', 'seguranca' => false],
+    ['nome' => 'Som e instrumentos', 'seguranca' => false], ['nome' => 'Incêndio e segurança', 'seguranca' => true],
+    ['nome' => 'Móveis e bancos', 'seguranca' => false], ['nome' => 'Jardim e área externa', 'seguranca' => false],
+    ['nome' => 'Obra', 'seguranca' => true], ['nome' => 'Outros', 'seguranca' => false],
+];
+const CH_ALCADAS_PADRAO = ['coord' => 500, 'gestao' => 1000];
+const CH_NIVEIS = ['coord' => 1, 'gestao' => 2, 'procurador' => 3];
+const CH_NIVEL_NOME = ['coord' => 'Coordenação', 'gestao' => 'Gestão', 'procurador' => 'Procurador'];
+const CH_ORIGENS = [];
+
+function ch_cfg_json($tid, $chave) {
+    $v = valor("SELECT valor FROM config WHERE tenant_id = ? AND chave = ?", [$tid, $chave]);
+    return $v ? json_decode((string) $v, true) : null;
+}
+function ch_tipos($tid) {
+    $l = ch_cfg_json($tid, 'tipos_servico');
+    return is_array($l) && $l ? $l : CH_TIPOS_PADRAO;
+}
+function ch_alcadas($tid) {
+    $a = ch_cfg_json($tid, 'alcadas');
+    return ['coord' => (float) ($a['coord'] ?? CH_ALCADAS_PADRAO['coord']), 'gestao' => (float) ($a['gestao'] ?? CH_ALCADAS_PADRAO['gestao'])];
+}
+function ch_exige_seguranca($tid, $tipo) {
+    foreach (ch_tipos($tid) as $t) if (($t['nome'] ?? '') === $tipo) return !empty($t['seguranca']);
+    return false;
+}
+/* quem precisa aprovar este valor */
+function ch_nivel_exigido($tid, $valor) {
+    $a = ch_alcadas($tid);
+    $v = (float) ($valor ?? 0);
+    return $v <= $a['coord'] ? 'coord' : ($v <= $a['gestao'] ? 'gestao' : 'procurador');
+}
+/* maior alçada da pessoa (0 = não aprova). O Administrador não aprova: dê a ele o perfil da alçada. */
+function ch_nivel_de($u) {
+    $n = 0;
+    foreach (['coord', 'gestao', 'procurador'] as $p) if (tem_perfil($u, $p)) $n = max($n, CH_NIVEIS[$p]);
+    return $n;
+}
+function ch_aprovacao($c, $u, $tid) {
+    $nivel = ch_nivel_exigido($tid, $c['valor']);
+    $exigeSeg = ch_exige_seguranca($tid, (string) $c['tipo_servico']);
+    $nome = function ($id) use ($tid) { return $id ? valor("SELECT nome FROM usuarios WHERE id = ? AND tenant_id = ?", [(int) $id, $tid]) : null; };
+    $aguardando = $c['status'] === CH_AGUARDANDO;
+    $segOk = !$exigeSeg || ($c['parecer_seg'] ?? null) === 'favoravel';
+    return [
+        'nivelExigido' => $nivel, 'nivelNome' => CH_NIVEL_NOME[$nivel], 'valor' => $c['valor'] === null ? null : (float) $c['valor'],
+        'exigeSeguranca' => $exigeSeg,
+        'parecer' => ($c['parecer_seg'] ?? null) ? ['situacao' => $c['parecer_seg'], 'texto' => $c['parecer_texto'], 'por' => $nome($c['parecer_por']), 'em' => $c['parecer_em']] : null,
+        'aprovado' => ($c['aprovado_por'] ?? null) ? ['por' => $nome($c['aprovado_por']), 'em' => $c['aprovado_em'], 'nivel' => $c['aprovado_nivel'], 'nivelNome' => CH_NIVEL_NOME[$c['aprovado_nivel']] ?? $c['aprovado_nivel'], 'valor' => $c['aprovado_valor'] === null ? null : (float) $c['aprovado_valor']] : null,
+        'podeAprovar' => $aguardando && $segOk && ch_nivel_de($u) >= CH_NIVEIS[$nivel],
+        'podeReprovar' => $aguardando && ch_nivel_de($u) >= 1,
+        'podeParecer' => $aguardando && $exigeSeg && tem_perfil($u, 'seguranca'),
+        'alcadas' => ch_alcadas($tid),
+    ];
+}
+/* trava: chamado só passa para Aprovado/Em Andamento/Concluído depois de aprovado pela alçada */
+function ch_conferir_passagem($statusNovo, $c) {
+    if ((CH_STATUS[$statusNovo] ?? '') !== 'ganho') return;
+    if (!empty($c['aprovado_por'])) return;
+    erro('Este chamado ainda não foi aprovado. Use o quadro "Aprovação" (Coordenação até o valor da alçada, depois Gestão e Procurador).', 409, 'SEM_APROVACAO');
+}
 
 const CH_CAMPOS_VALOR = ['valor', 'recebido', 'custo', 'rt', 'imposto', 'notaFiscal'];
 const CH_AGUARDANDO = 'Aguardando aprovação';
@@ -85,6 +146,7 @@ function chamado_publico($c, $u) {
         'proposta'     => null,
     ];
     /* v1.14.0: validade da proposta enviada */
+    $out['aprovacao'] = ch_aprovacao($c, $u, (int) $c['tenant_id']);   /* CCB v2 */
     if ($c['status'] === CH_AGUARDANDO && !empty($c['orc_enviado_em'])) {
         $dias = (int) ($c['orc_validade'] ?: 15);
         $vence = date('Y-m-d', strtotime(substr($c['orc_enviado_em'], 0, 10) . ' +' . $dias . ' days'));
@@ -306,8 +368,10 @@ return [
         exigir_perfil('admin', 'coord');
         return [
             'status'  => array_map(function ($s, $c) { return ['nome' => $s, 'categoria' => $c]; }, array_keys(CH_STATUS), CH_STATUS),
-            'tipos'   => CH_TIPOS,
+            'tipos'   => array_map(function ($t) { return $t['nome']; }, ch_tipos(tenant())),
+            'tiposSeguranca' => array_values(array_map(function ($t) { return $t['nome']; }, array_filter(ch_tipos(tenant()), function ($t) { return !empty($t['seguranca']); }))),
             'origens' => CH_ORIGENS,
+            'alcadas' => ch_alcadas(tenant()),
             'responsaveis' => array_map(function ($r) { return ['id' => (int) $r['id'], 'nome' => $r['nome']]; },
                 linhas("SELECT id, nome FROM usuarios WHERE tenant_id = ? AND excluido_em IS NULL AND status = 'ativo'
                           AND perfil IN ('admin','coord','tecnico','comercial') ORDER BY nome", [tenant()])),
@@ -455,9 +519,9 @@ return [
 
         $cliId = (int) ($d['clienteId'] ?? 0);
         $cli = $cliId ? linha("SELECT id, origem FROM clientes WHERE id = ? AND tenant_id = ? AND excluido_em IS NULL", [$cliId, $tid]) : null;
-        if (!$cli) erro('Escolha o cliente do chamado.');
+        if (!$cli) erro('Escolha a Casa de Oração do chamado.');
 
-        $status = (string) ($d['status'] ?? 'Falta enviar orçamento');
+        $status = (string) ($d['status'] ?? 'Falta orçamento');
         if (!isset(CH_STATUS[$status])) erro('Status inválido.');
         $respId = (int) ($d['responsavelId'] ?? 0) ?: null;
         if ($respId && !valor("SELECT id FROM usuarios WHERE id = ? AND tenant_id = ? AND excluido_em IS NULL", [$respId, $tid])) $respId = null;
@@ -502,6 +566,17 @@ return [
 
         if ($id) {
             $atual = chamado_da_empresa($id, $tid);
+            /* CCB v2: aprovação por alçada */
+            if ($status !== $atual['status']) ch_conferir_passagem($status, $atual);
+            if ((CH_STATUS[$status] ?? '') === 'aberto' && !empty($atual['aprovado_por'])) {
+                $campos += ['aprovado_por' => null, 'aprovado_em' => null, 'aprovado_nivel' => null, 'aprovado_valor' => null];
+            } elseif (!empty($atual['aprovado_por']) && array_key_exists('valor', $campos)
+                      && CH_NIVEIS[ch_nivel_exigido($tid, $campos['valor'])] > (CH_NIVEIS[$atual['aprovado_nivel']] ?? 0)) {
+                /* o valor subiu para uma alçada maior que a que aprovou: volta para aprovação */
+                $campos += ['aprovado_por' => null, 'aprovado_em' => null, 'aprovado_nivel' => null, 'aprovado_valor' => null];
+                $status = $campos['status'] = CH_AGUARDANDO;
+                ch_acomp_registrar($id, 'aprovacao', 'O valor passou da alçada que aprovou (' . (CH_NIVEL_NOME[$atual['aprovado_nivel']] ?? '') . '). Voltou para aprovação.', null, $tid, (int) $u['id']);
+            }
             $campos['fechado_em'] = ch_fechamento($status, $atual['fechado_em'], $fechInf);
             if (ch_tem_ganho_em()) $campos['ganho_em'] = ch_ganho_em($status, $atual['status'], $atual['ganho_em'] ?? null);
             $set = implode(', ', array_map(function ($k) { return "$k = ?"; }, array_keys($campos)));
@@ -523,7 +598,7 @@ return [
             db()->commit();
             auditar('chamado_editar', 'chamados', $id, $atual['numero'] . ($atual['status'] !== $status ? ' ' . $atual['status'] . ' → ' . $status : ''));
         } else {
-            if ($campos['origem'] === null) $campos['origem'] = $cli['origem'];   // herda a origem do cliente
+            ch_conferir_passagem($status, []);   /* CCB v2: chamado novo nunca nasce aprovado */
             $campos['fechado_em'] = ch_fechamento($status, null, $fechInf);
             if (ch_tem_ganho_em()) $campos['ganho_em'] = ch_ganho_em($status, null, null);
             db()->beginTransaction();
@@ -541,7 +616,6 @@ return [
             db()->commit();
             auditar('chamado_criar', 'chamados', $id, (string) $campos['numero']);
         }
-        fin_sincronizar_chamado($id, $tid, isset($atual) ? $atual['status'] : null);   /* v1.23.0 */
         $c = chamado_publico(chamado_da_empresa($id, $tid), $u);
         if (ch_ve_valores($u)) {
             $c['orcamento'] = orc_do_chamado($id, $tid);
@@ -559,14 +633,55 @@ return [
         $status = (string) ($d['status'] ?? '');
         if (!isset(CH_STATUS[$status])) erro('Status inválido.');
         if ($status !== $c['status']) {
+            ch_conferir_passagem($status, $c);   /* CCB v2 */
             q("UPDATE chamados SET status = ?, fechado_em = ? WHERE id = ? AND tenant_id = ?",
               [$status, ch_fechamento($status, $c['fechado_em']), $c['id'], $tid]);
+            if ((CH_STATUS[$status] ?? '') === 'aberto')
+                q("UPDATE chamados SET aprovado_por = NULL, aprovado_em = NULL, aprovado_nivel = NULL, aprovado_valor = NULL WHERE id = ? AND tenant_id = ?", [$c['id'], $tid]);
             if (ch_tem_ganho_em())
                 q("UPDATE chamados SET ganho_em = ? WHERE id = ? AND tenant_id = ?", [ch_ganho_em($status, $c['status'], $c['ganho_em'] ?? null), $c['id'], $tid]);
             ch_marcar_proposta((int) $c['id'], $status, $c['status'], $tid);
             auditar('chamado_status', 'chamados', (int) $c['id'], $c['numero'] . ' ' . $c['status'] . ' → ' . $status);
-            fin_sincronizar_chamado((int) $c['id'], $tid, $c['status']);   /* v1.23.0 */
         }
+        return chamado_publico(chamado_da_empresa((int) $c['id'], $tid), $u);
+    },
+
+    /* CCB v2 — {id, acao: aprovar|reprovar|parecer, situacao?: favoravel|desfavoravel, texto?}
+       aprovar: alçada da pessoa ≥ exigida pelo valor e, se o tipo pede, parecer favorável da Segurança do Trabalho.
+       reprovar: qualquer alçada, com o motivo. parecer: perfil Segurança do Trabalho. */
+    'aprovacao' => function ($d) {
+        $u = exigir_perfil('coord', 'gestao', 'procurador', 'seguranca');
+        $tid = tenant();
+        $c = chamado_da_empresa((int) ($d['id'] ?? 0), $tid);
+        $ap = ch_aprovacao($c, $u, $tid);
+        $acao = (string) ($d['acao'] ?? '');
+        $texto = txt($d['texto'] ?? '', 3000);
+        if ($c['status'] !== CH_AGUARDANDO) erro('O chamado precisa estar em "Aguardando aprovação".', 409);
+        if ($acao === 'parecer') {
+            if (!$ap['podeParecer']) erro('Só a Segurança do Trabalho dá o parecer, e só nos tipos de serviço marcados.', 403, 'SEM_PERMISSAO');
+            $sit = (string) ($d['situacao'] ?? '');
+            if (!in_array($sit, ['favoravel', 'desfavoravel'], true)) erro('Escolha favorável ou desfavorável.');
+            if ($sit === 'desfavoravel' && mb_strlen($texto) < 5) erro('Explique o motivo do parecer desfavorável.');
+            q("UPDATE chamados SET parecer_seg = ?, parecer_texto = ?, parecer_por = ?, parecer_em = NOW() WHERE id = ? AND tenant_id = ?", [$sit, $texto ?: null, (int) $u['id'], $c['id'], $tid]);
+            ch_acomp_registrar((int) $c['id'], 'parecer', 'Parecer da Segurança do Trabalho: ' . ($sit === 'favoravel' ? 'favorável' : 'desfavorável') . ($texto ? ' — ' . $texto : ''), null, $tid, (int) $u['id']);
+            auditar('chamado_parecer', 'chamados', (int) $c['id'], $c['numero'] . ' ' . $sit);
+        } elseif ($acao === 'aprovar') {
+            if ($ap['exigeSeguranca'] && ($c['parecer_seg'] ?? null) !== 'favoravel') erro('Falta o parecer favorável da Segurança do Trabalho.', 409);
+            if (!$ap['podeAprovar']) erro('Este valor precisa da aprovação de: ' . $ap['nivelNome'] . '.', 403, 'SEM_ALCADA');
+            q("UPDATE chamados SET status = 'Aprovado', aprovado_por = ?, aprovado_em = NOW(), aprovado_nivel = ?, aprovado_valor = valor, fechado_em = ? WHERE id = ? AND tenant_id = ?",
+              [(int) $u['id'], $ap['nivelExigido'], ch_fechamento('Aprovado', $c['fechado_em']), $c['id'], $tid]);
+            if (ch_tem_ganho_em()) q("UPDATE chamados SET ganho_em = ? WHERE id = ? AND tenant_id = ?", [ch_ganho_em('Aprovado', $c['status'], $c['ganho_em'] ?? null), $c['id'], $tid]);
+            ch_marcar_proposta((int) $c['id'], 'Aprovado', $c['status'], $tid);
+            ch_acomp_registrar((int) $c['id'], 'aprovacao', 'Aprovado (' . $ap['nivelNome'] . ')' . ($c['valor'] !== null ? ' — R$ ' . number_format((float) $c['valor'], 2, ',', '.') : '') . ($texto ? ' — ' . $texto : ''), null, $tid, (int) $u['id']);
+            auditar('chamado_aprovar', 'chamados', (int) $c['id'], $c['numero'] . ' ' . $ap['nivelExigido']);
+        } elseif ($acao === 'reprovar') {
+            if (!$ap['podeReprovar']) erro('Você não tem alçada para decidir este chamado.', 403, 'SEM_ALCADA');
+            if (mb_strlen($texto) < 5) erro('Escreva o motivo de não aprovar.');
+            q("UPDATE chamados SET status = 'Não Aprovado', fechado_em = ? WHERE id = ? AND tenant_id = ?", [ch_fechamento('Não Aprovado', $c['fechado_em']), $c['id'], $tid]);
+            ch_marcar_proposta((int) $c['id'], 'Não Aprovado', $c['status'], $tid);
+            ch_acomp_registrar((int) $c['id'], 'aprovacao', 'Não aprovado — ' . $texto, null, $tid, (int) $u['id']);
+            auditar('chamado_reprovar', 'chamados', (int) $c['id'], $c['numero']);
+        } else erro('Ação inválida.');
         return chamado_publico(chamado_da_empresa((int) $c['id'], $tid), $u);
     },
 
@@ -576,7 +691,6 @@ return [
         $c = chamado_da_empresa((int) ($d['id'] ?? 0), $tid);
         q("UPDATE chamados SET excluido_em = NOW() WHERE id = ? AND tenant_id = ?", [$c['id'], $tid]);
         auditar('chamado_excluir', 'chamados', (int) $c['id'], $c['numero'] . ' ' . $c['cliente_nome']);
-        fin_sincronizar_chamado((int) $c['id'], $tid);   /* v1.23.0: parcelas sem baixa são canceladas */
         return ['id' => (int) $c['id']];
     },
 
@@ -627,7 +741,7 @@ return [
         try { valor("SELECT 1 FROM proposta_links LIMIT 0"); } catch (Throwable $e) { erro('Rode antes o SQL 12_propostas_link.sql da versão 1.18.0.'); }
         db()->beginTransaction();
         [$tok, $versao, $mudou] = prop_gravar_link($c, $html, $orc, $tid, (int) $u['id']);
-        if ($c['status'] === 'Falta enviar orçamento') {
+        if ($c['status'] === 'Falta orçamento') {
             q("UPDATE chamados SET status = ? WHERE id = ? AND tenant_id = ?", [CH_AGUARDANDO, $c['id'], $tid]);
             ch_marcar_proposta((int) $c['id'], CH_AGUARDANDO, $c['status'], $tid);
         } elseif ($c['status'] === CH_AGUARDANDO) {

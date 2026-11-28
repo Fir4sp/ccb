@@ -9,8 +9,6 @@ if (!defined('KSAAS')) { http_response_code(403); exit; }
 
 require_once __DIR__ . '/base.php';
 require_once __DIR__ . '/modulos.php';   /* v1.19.0: liberação de módulos por empresa */
-require_once __DIR__ . '/uso.php';       /* v1.20.0: indicador de uso (Console › Uso) */
-require_once __DIR__ . '/assinatura.php'; /* v1.30.0: planos, teste grátis, cobrança e modo de consulta */
 
 function rotear(array $modulos) {
     header('Content-Type: application/json; charset=utf-8');
@@ -50,7 +48,6 @@ function rotear(array $modulos) {
         }
         $GLOBALS['K_ACAO'] = [$m[1], $m[2]];   /* v1.22.0: regra dos perfis no CRM */
         exigir_modulo_da_api($m[1]);   /* v1.19.0: módulo desligado para a empresa não responde */
-        assinatura_exigir_escrita($m[1], $m[2]);   /* v1.30.0: atraso / teste vencido → só consulta */
         exigir_recurso_da_api($m[1], $m[2]);       /* v1.32.0: Financeiro avançado só no Premium */
         $acoes = require dirname(__DIR__) . '/api/' . $modulos[$m[1]] . '.php';
         if (!isset($acoes[$m[2]])) erro('Ação desconhecida.', 404, 'ACAO');
@@ -60,7 +57,6 @@ function rotear(array $modulos) {
         if ($sync && sync_ja_recebido($sync)) ok(['_duplicado' => true]);
         $res = $acoes[$m[2]]($dados);
         if ($sync) sync_registrar($sync, $acao);
-        uso_registrar($acao);   /* v1.20.0 */
         ok($res);
 
     } catch (ErroApi $e) {

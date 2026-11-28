@@ -11,7 +11,6 @@ if (!defined('KSAAS')) { http_response_code(403); exit; }
 require_once dirname(__DIR__) . '/nucleo/notificacoes.php';   /* v1.19.0 */
 
 require_once dirname(__DIR__) . '/nucleo/anexos.php';
-require_once dirname(__DIR__) . '/nucleo/pmoc_tecnico.php';   /* v1.39.0: PMOC do mês do técnico na tela de OS */
 
 /* datas de OS sempre no horário de Brasília (o banco já usa -03:00) */
 date_default_timezone_set('America/Sao_Paulo');
@@ -23,11 +22,13 @@ const OS_ETAPA_STATUS = ['pendente', 'execucao', 'concluida', 'na', 'problema', 
 const OS_PRIORIDADES = ['baixa', 'normal', 'alta', 'urgente'];
 const OS_POR_PAGINA = 60;
 
+/* CCB v2: checklists iniciais (a Coordenação muda em Configurações › Checklists de OS) */
 const OS_CHECKLISTS_PADRAO = [
-    ['nome' => 'Instalação', 'termos' => ['instala'], 'itens' => ['Passagem de infra', 'Fazer o dreno', 'Instalação de evaporadoras', 'Instalação de condensadoras', 'Elétrica', 'Vácuo', 'Start-up']],
-    ['nome' => 'Higienização', 'termos' => ['higien', 'limpeza'], 'itens' => ['Higienização da evaporadora', 'Higienização da condensadora', 'Limpeza de filtros', 'Limpeza da bandeja e dreno', 'Teste de funcionamento']],
-    ['nome' => 'Manutenção preventiva', 'termos' => ['preventiva'], 'itens' => ['Limpeza de filtros', 'Verificação do dreno', 'Temperatura de insuflamento', 'Corrente elétrica do compressor', 'Higienização da turbina', 'Teste de funcionamento']],
-    ['nome' => 'Manutenção corretiva', 'termos' => ['corretiva'], 'itens' => ['Diagnóstico do defeito', 'Substituição de peça', 'Teste de estanqueidade', 'Teste de funcionamento']],
+    ['nome' => 'Elétrica', 'termos' => ['eletric', 'elétric'], 'itens' => ['Desligar o circuito e sinalizar', 'Verificar quadro e disjuntores', 'Executar o reparo', 'Testar tensão e funcionamento', 'Religar e conferir com a casa']],
+    ['nome' => 'Hidráulica', 'termos' => ['hidraul', 'hidrául', 'esgoto'], 'itens' => ['Fechar o registro', 'Identificar o vazamento ou entupimento', 'Executar o reparo', 'Teste de estanqueidade', 'Limpeza do local']],
+    ['nome' => 'Civil', 'termos' => ['civil', 'obra', 'piso', 'calçada', 'pintura', 'parede'], 'itens' => ['Isolar e proteger a área', 'Preparar a superfície', 'Executar o serviço', 'Acabamento', 'Limpeza e retirada de entulho']],
+    ['nome' => 'Telhado, forro e calhas', 'termos' => ['telhado', 'forro', 'calha'], 'itens' => ['EPI e linha de vida', 'Inspeção do telhado', 'Troca de telhas / reparo', 'Limpeza de calhas e rufos', 'Teste com água']],
+    ['nome' => 'Ar-condicionado e ventiladores', 'termos' => ['ar-cond', 'ar cond', 'ventilad'], 'itens' => ['Limpeza de filtros', 'Verificação do dreno', 'Verificação elétrica', 'Teste de funcionamento']],
     ['nome' => 'Personalizada', 'termos' => [], 'itens' => []],
 ];
 
@@ -314,7 +315,7 @@ return [
             'concluidasMes' => $cont("o.status = 'Concluída' AND o.fechada_em >= ?", [date('Y-m-01')]),
             'hoje'        => array_map(function ($o) use ($tid) { return os_publica($o, $tid); }, $rows),
             /* v1.39.0: visitas de PMOC do mês destinadas à pessoa, com endereço (botão "Abrir mapa") */
-            'meuPmoc'     => modulo_liberado('pmoc', $tid) ? pmoc_do_usuario($tid, (int) $u['id']) : [],
+            'meuPmoc'     => [],
         ];
     },
 
