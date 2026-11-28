@@ -1,0 +1,48 @@
+# SGClim v1.39.0 — aviso do SQL do cartão; PMOC do técnico com mapa; "Eu quero"; solicitação pelo link
+Options -Indexes
+DirectoryIndex index.html index.php
+
+# ---- bloqueia arquivos que nunca devem ser baixados (sobras de pacote, backups, SQL, anotações) ----
+<FilesMatch "(?i)\.(sql|md|zip|rar|7z|bak|old|log|ini|sh|env|txt|dist|orig)$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "^(\.|desktop\.ini$|Thumbs\.db$)">
+  Require all denied
+</FilesMatch>
+
+# ---- compactação: JS/CSS/JSON chegam ~70% menores ----
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain application/javascript text/javascript application/json application/manifest+json image/svg+xml
+</IfModule>
+<IfModule mod_brotli.c>
+  AddOutputFilterByType BROTLI_COMPRESS text/html text/css text/plain application/javascript text/javascript application/json application/manifest+json image/svg+xml
+</IfModule>
+
+<IfModule mod_mime.c>
+  AddType font/woff2 .woff2
+  AddType application/manifest+json .webmanifest
+</IfModule>
+
+<IfModule mod_headers.c>
+  # segurança em todas as páginas
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "same-origin"
+  Header always set Content-Security-Policy "frame-ancestors 'self' https://xclim.com.br https://*.xclim.com.br"
+  Header always set Permissions-Policy "geolocation=(self), camera=(self), microphone=()"
+  Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
+
+  # arquivos do app carregam com ?v=versão: podem ficar guardados por 1 ano (versão nova = endereço novo)
+  <FilesMatch "\.(js|css|woff2|png|svg|webp|ico)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  # a página, o service worker e o manifest nunca ficam guardados (versão nova chega na hora)
+  <FilesMatch "^(index\.html|sw\.js|manifest\.json)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>
+
+<IfModule LiteSpeed>
+  CacheLookup off
+</IfModule>

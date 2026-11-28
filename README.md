@@ -1,20 +1,29 @@
-# Sistema CCB
+# SGClim
 
-Gestão das Casas de Oração: manutenção (chamados, OS, áreas), CNS Limpeza (loja, ciclo de pedidos,
-análises, consolidação, compras, entrega) e estoques dos DMLs. Produto da **Xclim**, no ar em
-https://ccb.xclim.com.br (Hostinger). Ficha completa no cérebro: `skills/dev-xclim/produtos/ccb/`.
+Sistema de gestão para empresas de climatização — produto da **Xclim**.
+Em produção em **https://sgclim.xclim.com.br** (Hostinger, PHP + MySQL, app instalável/PWA).
 
-## Pastas
+Documentação de negócio, decisões e plano: repositório [`Fir4sp/cerebro`](https://github.com/Fir4sp/cerebro)
+(pasta `xclim-sgclim/`).
 
-| Pasta | O que é | No servidor vira |
-|---|---|---|
-| `backend/` | PHP 8 sem dependências (`src/`, `src/Controladores/`, `public/index.php` = API REST, `database/migrations/`, `bin/`, `tests/`) | `nucleo/` (bloqueada para a internet) |
-| `frontend/` | App React + Vite (PWA) | `npm run build` → conteúdo de `frontend/dist/` na raiz do subdomínio |
-| `implantacao/publicar/` | `api/index.php` (porta da API), `localizar_app.php`, instalador | raiz do subdomínio |
-| `docs/` | guias de instalação e atualização | — |
+## Estrutura
 
-## Nunca no GitHub
-`backend/config/config.local.php` (senha do banco — modelo em `config.local.exemplo.php`), `backend/arquivos/` (fotos e notas reais), backups.
+| Pasta | O que é |
+|---|---|
+| `nucleo/` | Base do sistema: banco, sessão, permissões, IA, Asaas, e-mail, notificações |
+| `api/` | Ações chamadas pelo app (uma por módulo) |
+| `app/` | Telas do app (JavaScript) e ícones |
+| `plataforma/` | Console da Xclim para gerenciar as empresas clientes |
+| `p/` · `q/` · `r/` | Links públicos: propostas, etiquetas QR, relatórios |
+| `cadastro/` · `indique/` · `conheca/` · `legal/` | Páginas públicas |
+| `webhook/` | Retorno de pagamentos do Asaas |
 
-## Testes
-MySQL/MariaDB local com usuário `ccb`/`ccb`: `bash backend/tests/executar.sh` (cria `ccb_test`, sobe o PHP embutido e roda os testes de ponta a ponta).
+## O que NÃO fica aqui (ver `.gitignore`)
+
+- `nucleo/config.php` — senhas e chaves; modelo em `nucleo/config.exemplo.php`
+- `arquivos/` — fotos e documentos dos clientes
+- `_ses/` — sessões
+
+## Regra de produto
+
+Sistema considerado pronto em 08/11/2026. Funcionalidade nova só entra se **vários clientes** pedirem a mesma coisa.
